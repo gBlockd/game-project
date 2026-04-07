@@ -612,6 +612,74 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a57232d80d2ea9e438e1adf62773a368, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMark
+--- !u!114 &1033310604
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1033310587}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e199ca6b694d4c447b7bdfac25e8cd02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleChaseEnemy
+  activationRange: 10
+  player: {fileID: 1211671082}
+  sideOffset: 4
+  moveSpeed: 4
+  stoppingDistance: 0.05
+  horizontalAlignmentTolerance: 0.4
+  dashPauseDuration: 0.5
+  dashSpeed: 30
+  dashDuration: 0.2
+  dashCooldown: 1.2
+--- !u!61 &1033310605
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1033310587}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 1, y: 1}
+    newSize: {x: 1, y: 1}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 1, y: 1}
+  m_EdgeRadius: 0
 --- !u!1 &1037143798
 GameObject:
   m_ObjectHideFlags: 0
@@ -1774,7 +1842,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5943544017442434153, guid: d9a95eba8aa15ce47896e15d53b2a036, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 10
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 5943544017442434153, guid: d9a95eba8aa15ce47896e15d53b2a036, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1830,6 +1898,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6251051295517394259, guid: d9a95eba8aa15ce47896e15d53b2a036, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1033310599}
+    - targetCorrespondingSourceObject: {fileID: 6251051295517394259, guid: d9a95eba8aa15ce47896e15d53b2a036, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1033310604}
+    - targetCorrespondingSourceObject: {fileID: 6251051295517394259, guid: d9a95eba8aa15ce47896e15d53b2a036, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1033310605}
   m_SourcePrefab: {fileID: 100100000, guid: d9a95eba8aa15ce47896e15d53b2a036, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

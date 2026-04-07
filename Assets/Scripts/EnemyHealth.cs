@@ -7,7 +7,8 @@ using UnityEngine;
 /// - tracks current and maximum health,
 /// - applies damage and healing,
 /// - clamps health within valid bounds,
-/// - triggers visual feedback when damaged.
+/// - triggers visual feedback when damaged,
+/// - destroys the enemy when health reaches zero.
 /// </summary>
 public class EnemyHealth : MonoBehaviour
 {
@@ -17,7 +18,7 @@ public class EnemyHealth : MonoBehaviour
     // Current health value (clamped between 0 and maxHealth).
     private int currentHealth;
 
-    // Public read-only accessors for external systems (UI, combat, etc.).
+    // Public read-only accessors for external systems.
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
 
@@ -38,7 +39,8 @@ public class EnemyHealth : MonoBehaviour
     /// 
     /// - Reduces health,
     /// - clamps to a minimum of 0,
-    /// - triggers a visual flash if available.
+    /// - triggers a visual flash if available,
+    /// - destroys the enemy if health reaches zero.
     /// </summary>
     /// <param name="amount">Amount of damage to apply.</param>
     public void TakeDamage(int amount)
@@ -49,6 +51,11 @@ public class EnemyHealth : MonoBehaviour
         if (damageFlash != null)
         {
             damageFlash.Flash();
+        }
+
+        if (currentHealth <= 0)
+        {
+            Die();
         }
     }
 
@@ -63,5 +70,13 @@ public class EnemyHealth : MonoBehaviour
     {
         currentHealth += amount;
         currentHealth = Mathf.Min(currentHealth, maxHealth);
+    }
+
+    /// <summary>
+    /// Removes the enemy from the scene.
+    /// </summary>
+    private void Die()
+    {
+        Destroy(gameObject);
     }
 }
