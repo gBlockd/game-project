@@ -9,9 +9,11 @@ public class PlayerHealth : MonoBehaviour
     public int maxHealth = 100;
 
     private int currentHealth;
+    private bool isDead;
 
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
+    public bool IsDead => isDead;
 
     private PlayerDamageFlash damageFlash;
 
@@ -23,6 +25,9 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
+        if (isDead)
+            return;
+
         currentHealth -= amount;
         currentHealth = Mathf.Max(currentHealth, 0);
 
@@ -30,11 +35,30 @@ public class PlayerHealth : MonoBehaviour
         {
             damageFlash.Flash();
         }
+
+        if (currentHealth <= 0)
+        {
+            isDead = true;
+
+            if (RespawnManager.Instance != null)
+            {
+                RespawnManager.Instance.HandlePlayerDeath(this);
+            }
+        }
     }
 
     public void Heal(int amount)
     {
+        if (isDead)
+            return;
+
         currentHealth += amount;
         currentHealth = Mathf.Min(currentHealth, maxHealth);
+    }
+
+    public void ResetToFullHealth()
+    {
+        currentHealth = maxHealth;
+        isDead = false;
     }
 }

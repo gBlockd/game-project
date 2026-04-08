@@ -16,20 +16,20 @@ public class FlyingEnemyKnockback : MonoBehaviour
     public float knockbackDistance = 1f;
     public float knockbackDuration = 0.08f;
 
-    private SimpleChaseEnemy chaseEnemy;
+    private IFlyingEnemyMovement flyingEnemyMovement;
     private Coroutine knockbackCoroutine;
 
     private void Awake()
     {
-        chaseEnemy = GetComponent<SimpleChaseEnemy>();
+        flyingEnemyMovement = GetComponent<IFlyingEnemyMovement>();
     }
 
     public void ApplyKnockback(Vector2 attackerPosition)
     {
-        if (chaseEnemy == null)
+        if (flyingEnemyMovement == null)
             return;
 
-        if (!chaseEnemy.CanReceiveKnockback)
+        if (!flyingEnemyMovement.CanReceiveKnockback)
             return;
 
         if (knockbackCoroutine != null)
@@ -42,7 +42,7 @@ public class FlyingEnemyKnockback : MonoBehaviour
 
     private IEnumerator KnockbackRoutine(Vector2 attackerPosition)
     {
-        Vector2 savedVelocity = chaseEnemy.CurrentVelocity;
+        Vector2 savedVelocity = flyingEnemyMovement.CurrentVelocity;
         Vector2 startPosition = transform.position;
 
         Vector2 direction = ((Vector2)transform.position - attackerPosition).normalized;
@@ -53,7 +53,7 @@ public class FlyingEnemyKnockback : MonoBehaviour
 
         Vector2 targetPosition = startPosition + direction * knockbackDistance;
 
-        chaseEnemy.FreezeMovement();
+        flyingEnemyMovement.FreezeMovement();
 
         float elapsed = 0f;
 
@@ -68,7 +68,7 @@ public class FlyingEnemyKnockback : MonoBehaviour
 
         transform.position = targetPosition;
 
-        chaseEnemy.UnfreezeMovement(savedVelocity);
+        flyingEnemyMovement.UnfreezeMovement(savedVelocity);
         knockbackCoroutine = null;
     }
 }

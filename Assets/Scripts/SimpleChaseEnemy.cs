@@ -17,7 +17,7 @@ using UnityEngine;
 /// This enemy ignores physics and collision and moves by directly changing
 /// its transform position.
 /// </summary>
-public class SimpleChaseEnemy : MonoBehaviour
+public class SimpleChaseEnemy : MonoBehaviour, IFlyingEnemyMovement
 {
     [Header("Activation")]
     public float activationRange = 10f;
