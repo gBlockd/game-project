@@ -2,9 +2,17 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Simple enemy movement AI that normally moves toward whichever side of the player
-/// is closer, but if it becomes horizontally aligned with the player, it pauses,
-/// dashes horizontally toward them, then resumes chasing.
+/// Simple enemy movement AI.
+///
+/// Behavior:
+/// - Starts idle until the player enters activation range.
+/// - Once active, moves toward a randomly chosen horizontal point near the player.
+/// - Uses acceleration/deceleration so movement has some weight.
+/// - Periodically switches its target side at a random interval.
+/// - When vertically aligned with the player and positioned between the
+///   left/right side offset points, pauses and dashes horizontally.
+/// - After dashing, resumes chase behavior.
+/// - Can be temporarily frozen by knockback, unless currently preparing a dash or dashing.
 /// 
 /// This enemy ignores physics and collision and moves by directly changing
 /// its transform position.
@@ -20,7 +28,13 @@ public class SimpleChaseEnemy : MonoBehaviour
 
     [Header("Movement")]
     public float moveSpeed = 4f;
+    public float acceleration = 12f;
+    public float deceleration = 14f;
     public float stoppingDistance = 0.05f;
+
+    [Header("Target Switching")]
+    public float minTargetSwitchTime = 2f;
+    public float maxTargetSwitchTime = 5f;
 
     [Header("Dash Attack")]
     public float horizontalAlignmentTolerance = 0.4f;
@@ -32,8 +46,16 @@ public class SimpleChaseEnemy : MonoBehaviour
     private bool isActive;
     private bool isPreparingDash;
     private bool isDashing;
+    private bool isFrozen;
     private bool canDash = true;
+    private bool targetingRightSide;
+
     private Vector2 dashDirection;
+    private Vector2 currentVelocity;
+    private Coroutine targetSwitchCoroutine;
+
+    public bool CanReceiveKnockback => !isPreparingDash && !isDashing && !isFrozen;
+    public Vector2 CurrentVelocity => currentVelocity;
 
     private void Update()
     {
@@ -46,7 +68,7 @@ public class SimpleChaseEnemy : MonoBehaviour
             return;
         }
 
-        if (isPreparingDash || isDashing)
+        if (isFrozen || isPreparingDash || isDashing)
             return;
 
         TryStartDash();
@@ -57,6 +79,10 @@ public class SimpleChaseEnemy : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Activates the enemy once the player is close enough.
+    /// Also picks an initial random side target and starts the periodic switching behavior.
+    /// </summary>
     private void TryActivate()
     {
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
@@ -64,87 +90,125 @@ public class SimpleChaseEnemy : MonoBehaviour
         if (distanceToPlayer <= activationRange)
         {
             isActive = true;
+            PickRandomTargetSide();
+
+            if (targetSwitchCoroutine == null)
+            {
+                targetSwitchCoroutine = StartCoroutine(TargetSwitchRoutine());
+            }
         }
     }
 
     /// <summary>
-    /// Handles the enemy's normal side-target chasing behavior.
-    /// The enemy moves toward whichever point is closer:
-    /// a point slightly left of the player or slightly right of the player.
+    /// Handles the enemy's weighted chase movement.
+    ///
+    /// The enemy moves toward whichever side is currently selected:
+    /// - a point to the left of the player
+    /// - a point to the right of the player
+    ///
+    /// Horizontal and vertical motion accelerate toward that target instead
+    /// of snapping instantly, giving the enemy more momentum and weight.
     /// </summary>
     private void HandleChaseMovement()
     {
-        Vector2 leftTarget = (Vector2)player.position + Vector2.left * sideOffset;
-        Vector2 rightTarget = (Vector2)player.position + Vector2.right * sideOffset;
+        Vector2 chosenTarget = targetingRightSide
+            ? (Vector2)player.position + Vector2.right * sideOffset
+            : (Vector2)player.position + Vector2.left * sideOffset;
 
-        float distanceToLeft = Vector2.Distance(transform.position, leftTarget);
-        float distanceToRight = Vector2.Distance(transform.position, rightTarget);
+        Vector2 toTarget = chosenTarget - (Vector2)transform.position;
+        Vector2 desiredVelocity = Vector2.zero;
 
-        Vector2 chosenTarget = distanceToLeft <= distanceToRight ? leftTarget : rightTarget;
+        if (toTarget.magnitude > stoppingDistance)
+        {
+            desiredVelocity = toTarget.normalized * moveSpeed;
+        }
 
-        float distanceToTarget = Vector2.Distance(transform.position, chosenTarget);
-        if (distanceToTarget <= stoppingDistance)
-            return;
+        float rate = desiredVelocity.sqrMagnitude > 0.001f ? acceleration : deceleration;
 
-        transform.position = Vector2.MoveTowards(
-            transform.position,
-            chosenTarget,
-            moveSpeed * Time.deltaTime
+        currentVelocity = Vector2.MoveTowards(
+            currentVelocity,
+            desiredVelocity,
+            rate * Time.deltaTime
         );
+
+        transform.position += (Vector3)(currentVelocity * Time.deltaTime);
     }
 
     /// <summary>
-    /// Checks whether the enemy is horizontally aligned with the player closely enough
-    /// to begin its dash sequence.
+    /// Checks whether the enemy should begin its dash sequence.
+    ///
+    /// Dash requirements:
+    /// - dash is available,
+    /// - enemy is vertically aligned with the player,
+    /// - enemy is horizontally between the player's left/right side offset points.
     /// </summary>
     private void TryStartDash()
     {
         if (!canDash)
             return;
 
-        // Check vertical alignment
         float verticalDifference = Mathf.Abs(transform.position.y - player.position.y);
         if (verticalDifference > horizontalAlignmentTolerance)
             return;
 
-        // Calculate side targets
-        Vector2 leftTarget = (Vector2)player.position + Vector2.left * sideOffset;
-        Vector2 rightTarget = (Vector2)player.position + Vector2.right * sideOffset;
+        float leftBoundary = player.position.x - sideOffset;
+        float rightBoundary = player.position.x + sideOffset;
+        float enemyX = transform.position.x;
 
-        float distanceToLeft = Vector2.Distance(transform.position, leftTarget);
-        float distanceToRight = Vector2.Distance(transform.position, rightTarget);
+        bool isBetweenPoints = enemyX >= leftBoundary && enemyX <= rightBoundary;
 
-        Vector2 chosenTarget = distanceToLeft <= distanceToRight ? leftTarget : rightTarget;
-
-        // Only dash if we've actually reached (or are very close to) that side position
-        float distanceToTarget = Vector2.Distance(transform.position, chosenTarget);
-
-        if (distanceToTarget <= stoppingDistance + 0.3f)
+        if (isBetweenPoints)
         {
             StartCoroutine(DashSequence());
         }
     }
 
     /// <summary>
+    /// Repeatedly chooses a new random target side at a random interval.
+    /// This makes the enemy's movement less predictable and more dynamic.
+    /// </summary>
+    private IEnumerator TargetSwitchRoutine()
+    {
+        while (true)
+        {
+            float waitTime = Random.Range(minTargetSwitchTime, maxTargetSwitchTime);
+            yield return new WaitForSeconds(waitTime);
+
+            PickRandomTargetSide();
+        }
+    }
+
+    /// <summary>
+    /// Randomly selects whether the enemy should target the left or right side of the player.
+    /// </summary>
+    private void PickRandomTargetSide()
+    {
+        targetingRightSide = Random.value > 0.5f;
+    }
+
+    /// <summary>
     /// Handles the full dash sequence:
-    /// - pause,
-    /// - dash horizontally toward the player,
+    /// - stop and pause,
+    /// - dash horizontally toward the locked player-side direction,
+    /// - stop the dash,
     /// - wait out cooldown,
-    /// - resume normal chase behavior.
+    /// - resume chase behavior.
     /// </summary>
     private IEnumerator DashSequence()
     {
         canDash = false;
         isPreparingDash = true;
 
-        // Stop and "wind up" before dashing.
+        currentVelocity = Vector2.zero;
+
+        // Lock the dash direction at the start of the wind-up.
+        float directionX = player.position.x >= transform.position.x ? 1f : -1f;
+        dashDirection = new Vector2(directionX, 0f);
+
         yield return new WaitForSeconds(dashPauseDuration);
 
         isPreparingDash = false;
         isDashing = true;
-
-        float directionX = player.position.x >= transform.position.x ? 1f : -1f;
-        dashDirection = new Vector2(directionX, 0f);
 
         float elapsed = 0f;
 
@@ -156,10 +220,23 @@ public class SimpleChaseEnemy : MonoBehaviour
         }
 
         isDashing = false;
+        currentVelocity = Vector2.zero;
 
         yield return new WaitForSeconds(dashCooldown);
 
         canDash = true;
+    }
+
+    public void FreezeMovement()
+    {
+        isFrozen = true;
+        currentVelocity = Vector2.zero;
+    }
+
+    public void UnfreezeMovement(Vector2 restoredVelocity)
+    {
+        currentVelocity = restoredVelocity;
+        isFrozen = false;
     }
 
     private void OnDrawGizmosSelected()
@@ -170,6 +247,9 @@ public class SimpleChaseEnemy : MonoBehaviour
         Vector2 leftTarget = (Vector2)player.position + Vector2.left * sideOffset;
         Vector2 rightTarget = (Vector2)player.position + Vector2.right * sideOffset;
 
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, activationRange);
+
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(leftTarget, 0.2f);
         Gizmos.DrawWireSphere(rightTarget, 0.2f);
@@ -179,15 +259,23 @@ public class SimpleChaseEnemy : MonoBehaviour
         Gizmos.DrawLine(transform.position, rightTarget);
 
         Gizmos.color = Color.red;
-        Vector3 upperLine = new Vector3(player.position.x, player.position.y + horizontalAlignmentTolerance, 0f);
-        Vector3 lowerLine = new Vector3(player.position.x, player.position.y - horizontalAlignmentTolerance, 0f);
         Gizmos.DrawLine(
-            new Vector3(player.position.x - 5f, upperLine.y, 0f),
-            new Vector3(player.position.x + 5f, upperLine.y, 0f)
+            new Vector3(player.position.x - 5f, player.position.y + horizontalAlignmentTolerance, 0f),
+            new Vector3(player.position.x + 5f, player.position.y + horizontalAlignmentTolerance, 0f)
         );
         Gizmos.DrawLine(
-            new Vector3(player.position.x - 5f, lowerLine.y, 0f),
-            new Vector3(player.position.x + 5f, lowerLine.y, 0f)
+            new Vector3(player.position.x - 5f, player.position.y - horizontalAlignmentTolerance, 0f),
+            new Vector3(player.position.x + 5f, player.position.y - horizontalAlignmentTolerance, 0f)
+        );
+
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawLine(
+            new Vector3(player.position.x - sideOffset, player.position.y - 3f, 0f),
+            new Vector3(player.position.x - sideOffset, player.position.y + 3f, 0f)
+        );
+        Gizmos.DrawLine(
+            new Vector3(player.position.x + sideOffset, player.position.y - 3f, 0f),
+            new Vector3(player.position.x + sideOffset, player.position.y + 3f, 0f)
         );
     }
 }
