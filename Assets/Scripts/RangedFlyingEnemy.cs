@@ -6,9 +6,9 @@ using UnityEngine;
 ///
 /// Behavior:
 /// - Starts idle until the player enters activation range.
-/// - Once active, moves toward a randomly chosen point above-left or above-right of the player.
+/// - Once active, moves toward a single hover point above the player.
+/// - The hover point's horizontal offset is randomly re-rolled every 2 seconds.
 /// - Uses acceleration/deceleration so movement has some weight.
-/// - Periodically switches its target side at a random interval.
 /// - When within attack range of the player, pauses and fires a projectile toward the player's current position.
 /// - After firing, resumes chase behavior.
 /// - Can be temporarily frozen by knockback, unless currently preparing or firing.
@@ -23,18 +23,16 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
 
     [Header("Target")]
     public Transform player;
-    public float sideOffset = 2f;
     public float heightOffset = 2f;
+    public float minSideOffset = -5f;
+    public float maxSideOffset = 5f;
+    public float targetSwitchInterval = 2f;
 
     [Header("Movement")]
     public float moveSpeed = 4f;
     public float acceleration = 12f;
     public float deceleration = 14f;
     public float stoppingDistance = 0.05f;
-
-    [Header("Target Switching")]
-    public float minTargetSwitchTime = 2f;
-    public float maxTargetSwitchTime = 5f;
 
     [Header("Ranged Attack")]
     public float attackRange = 4f;
@@ -48,19 +46,13 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
     private bool isAttacking;
     private bool isFrozen;
     private bool canAttack = true;
-    private bool targetingRightSide;
 
+    private float currentSideOffset;
     private Vector2 currentVelocity;
     private Coroutine targetSwitchCoroutine;
-    private Camera mainCamera;
 
     public bool CanReceiveKnockback => !isPreparingAttack && !isAttacking && !isFrozen;
     public Vector2 CurrentVelocity => currentVelocity;
-
-    private void Awake()
-    {
-        mainCamera = Camera.main;
-    }
 
     private void Update()
     {
@@ -91,7 +83,7 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
         if (distanceToPlayer <= activationRange)
         {
             isActive = true;
-            PickRandomTargetSide();
+            PickRandomSideOffset();
 
             if (targetSwitchCoroutine == null)
             {
@@ -102,10 +94,7 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
 
     private void HandleChaseMovement()
     {
-        Vector2 chosenTarget = targetingRightSide
-            ? (Vector2)player.position + new Vector2(sideOffset, heightOffset)
-            : (Vector2)player.position + new Vector2(-sideOffset, heightOffset);
-
+        Vector2 chosenTarget = (Vector2)player.position + new Vector2(currentSideOffset, heightOffset);
         Vector2 toTarget = chosenTarget - (Vector2)transform.position;
         Vector2 desiredVelocity = Vector2.zero;
 
@@ -142,16 +131,14 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
     {
         while (true)
         {
-            float waitTime = Random.Range(minTargetSwitchTime, maxTargetSwitchTime);
-            yield return new WaitForSeconds(waitTime);
-
-            PickRandomTargetSide();
+            yield return new WaitForSeconds(targetSwitchInterval);
+            PickRandomSideOffset();
         }
     }
 
-    private void PickRandomTargetSide()
+    private void PickRandomSideOffset()
     {
-        targetingRightSide = Random.value > 0.5f;
+        currentSideOffset = Random.Range(minSideOffset, maxSideOffset);
     }
 
     private IEnumerator AttackSequence()
@@ -218,15 +205,13 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
         if (player == null)
             return;
 
-        Vector2 leftTarget = (Vector2)player.position + new Vector2(-sideOffset, heightOffset);
-        Vector2 rightTarget = (Vector2)player.position + new Vector2(sideOffset, heightOffset);
+        Vector2 hoverTarget = (Vector2)player.position + new Vector2(currentSideOffset, heightOffset);
 
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, activationRange);
 
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(leftTarget, 0.2f);
-        Gizmos.DrawWireSphere(rightTarget, 0.2f);
+        Gizmos.DrawWireSphere(hoverTarget, 0.2f);
 
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, attackRange);

@@ -38,6 +38,11 @@ public class PlayerAttack : MonoBehaviour
         mainCamera = Camera.main;
     }
 
+    private void OnEnable()
+    {
+        attackPressed = false;
+    }
+
     /// <summary>
     /// Input System callback for melee attack input.
     /// 
@@ -47,7 +52,7 @@ public class PlayerAttack : MonoBehaviour
     /// <param name="context">Input callback context from the new Input System.</param>
     public void OnAttack(InputAction.CallbackContext context)
     {
-        if (context.performed)
+        if (context.started)
         {
             attackPressed = true;
         }

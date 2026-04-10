@@ -10,7 +10,8 @@ using UnityEngine;
 /// - applies knockback to eligible enemies,
 /// - consumes enemy marks when present,
 /// - applies bonus damage for consuming a mark,
-/// - refreshes projectile cooldown when a marked enemy is hit by melee.
+/// - refreshes projectile cooldown when a marked enemy is hit by melee,
+/// - activates checkpoints hit by the player's melee attack.
 /// </summary>
 public class AttackHitbox : MonoBehaviour
 {
@@ -22,6 +23,8 @@ public class AttackHitbox : MonoBehaviour
     public PlayerProjectileAttack playerProjectileAttack;
 
     private readonly HashSet<EnemyHealth> enemiesHit = new HashSet<EnemyHealth>();
+    private readonly HashSet<Checkpoint> checkpointsHit = new HashSet<Checkpoint>();
+
     private Collider2D hitboxCollider;
 
     private void Awake()
@@ -32,15 +35,16 @@ public class AttackHitbox : MonoBehaviour
     private void OnEnable()
     {
         enemiesHit.Clear();
-        CheckForOverlappingEnemies();
+        checkpointsHit.Clear();
+        CheckForOverlappingObjects();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        TryDamageEnemy(other);
+        TryInteract(other);
     }
 
-    private void CheckForOverlappingEnemies()
+    private void CheckForOverlappingObjects()
     {
         if (hitboxCollider == null)
             return;
@@ -53,8 +57,31 @@ public class AttackHitbox : MonoBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            TryDamageEnemy(results[i]);
+            TryInteract(results[i]);
         }
+    }
+
+    private void TryInteract(Collider2D other)
+    {
+        TryActivateCheckpoint(other);
+        TryDamageEnemy(other);
+    }
+
+    private void TryActivateCheckpoint(Collider2D other)
+    {
+        Checkpoint checkpoint = other.GetComponent<Checkpoint>();
+        if (checkpoint == null)
+            return;
+
+        if (checkpointsHit.Contains(checkpoint))
+            return;
+
+        PlayerHealth playerHealth = GetComponentInParent<PlayerHealth>();
+        if (playerHealth == null)
+            return;
+
+        checkpoint.Activate(playerHealth);
+        checkpointsHit.Add(checkpoint);
     }
 
     private void TryDamageEnemy(Collider2D other)

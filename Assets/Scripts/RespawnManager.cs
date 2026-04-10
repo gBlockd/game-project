@@ -18,6 +18,8 @@ public class RespawnManager : MonoBehaviour
     public ScreenFader screenFader;
 
     private bool isRespawning;
+    private bool hasCustomRespawnPoint;
+    private Vector3 currentRespawnPoint;
 
     private void Awake()
     {
@@ -39,6 +41,12 @@ public class RespawnManager : MonoBehaviour
         StartCoroutine(RespawnRoutine(deadPlayer));
     }
 
+    public void SetRespawnPoint(Vector3 respawnPosition)
+    {
+        currentRespawnPoint = respawnPosition;
+        hasCustomRespawnPoint = true;
+    }
+
     private IEnumerator RespawnRoutine(PlayerHealth deadPlayer)
     {
         isRespawning = true;
@@ -57,16 +65,20 @@ public class RespawnManager : MonoBehaviour
         yield return null;
 
         PlayerHealth newPlayer = FindAnyObjectByType<PlayerHealth>();
-        SpawnPoint spawnPoint = FindAnyObjectByType<SpawnPoint>();
+        SpawnPoint defaultSpawnPoint = FindAnyObjectByType<SpawnPoint>();
 
         if (newPlayer != null)
         {
             FreezePlayer(newPlayer.gameObject);
             SetPlayerVisible(newPlayer.gameObject, false);
 
-            if (spawnPoint != null)
+            if (hasCustomRespawnPoint)
             {
-                newPlayer.transform.position = spawnPoint.transform.position;
+                newPlayer.transform.position = currentRespawnPoint;
+            }
+            else if (defaultSpawnPoint != null)
+            {
+                newPlayer.transform.position = defaultSpawnPoint.transform.position;
             }
 
             newPlayer.ResetToFullHealth();

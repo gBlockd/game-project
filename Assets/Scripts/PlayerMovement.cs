@@ -11,7 +11,7 @@ using UnityEngine.InputSystem;
 /// - dive behavior while descending,
 /// - fall gravity tuning and fall speed limits,
 /// - dash behavior toward the mouse cursor,
-/// - ground detection and flight refills.
+/// - ground detection and flight/dash refills.
 /// </summary>
 public class PlayerMovement : MonoBehaviour
 {
@@ -42,7 +42,8 @@ public class PlayerMovement : MonoBehaviour
     public float dashSpeed = 20f;
     public float dashDuration = 0.12f;
     public float dashEndSpeed = 16f;
-    public float dashCooldown = 0.4f;
+    public int maxDashCharges = 3;
+    public float dashCooldown = 0.5f;
 
     // Core component references.
     private Rigidbody2D rb;
@@ -70,6 +71,7 @@ public class PlayerMovement : MonoBehaviour
     // Dash state.
     private bool isDashing;
     private bool canDash = true;
+    private int currentDashCharges;
     private Vector2 dashDirection;
 
     // Cached gravity value used when temporarily overriding gravity during dash.
@@ -79,6 +81,12 @@ public class PlayerMovement : MonoBehaviour
     public float CurrentFlightTime => currentFlightTime;
     public float MaxFlightTime => maxFlightTime;
 
+    public int CurrentDashCharges => currentDashCharges;
+    public int MaxDashCharges => maxDashCharges;
+
+    private Vector2 lastGroundedPosition;
+    public Vector2 LastGroundedPosition => lastGroundedPosition;
+
     /// <summary>
     /// Caches component references and initializes runtime values.
     /// </summary>
@@ -86,9 +94,19 @@ public class PlayerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         currentFlightTime = maxFlightTime;
+        currentDashCharges = maxDashCharges;
 
         mainCamera = Camera.main;
         normalGravityScale = rb.gravityScale;
+        lastGroundedPosition = transform.position;
+    }
+
+    public void ResetMomentum()
+    {
+        currentHorizontalSpeed = 0f;
+        dashPressed = false;
+        isDashing = false;
+        dashDirection = Vector2.zero;
     }
 
     /// <summary>
@@ -131,7 +149,8 @@ public class PlayerMovement : MonoBehaviour
     }
 
     /// <summary>
-    /// Updates ground state, refills flight on landing, and starts a dash if requested.
+    /// Updates ground state, refills flight and dash charges on landing,
+    /// and starts a dash if requested.
     /// </summary>
     private void Update()
     {
@@ -143,14 +162,20 @@ public class PlayerMovement : MonoBehaviour
             groundLayer
         );
 
-        // Refill flight instantly on landing.
+        if (isGrounded)
+        {
+            lastGroundedPosition = transform.position;
+        }
+
+        // Refill flight and dash charges instantly on landing.
         if (isGrounded && !wasGrounded)
         {
             currentFlightTime = maxFlightTime;
+            currentDashCharges = maxDashCharges;
         }
 
         // Start dash if requested and available.
-        if (dashPressed && canDash && !isDashing)
+        if (dashPressed && canDash && currentDashCharges > 0 && !isDashing)
         {
             dashPressed = false;
             StartCoroutine(PerformDash());
@@ -204,14 +229,6 @@ public class PlayerMovement : MonoBehaviour
 
     /// <summary>
     /// Handles upward flight behavior.
-    /// 
-    /// Grounded:
-    /// - pressing flight instantly launches the player upward.
-    /// 
-    /// Airborne:
-    /// - holding flight consumes flight time,
-    /// - applies upward acceleration,
-    /// - caps upward speed.
     /// </summary>
     private void HandleFlight()
     {
@@ -239,19 +256,6 @@ public class PlayerMovement : MonoBehaviour
 
     /// <summary>
     /// Applies state-based gravity tuning for falling, gliding, and diving.
-    /// 
-    /// Glide:
-    /// - activates while airborne, falling, holding flight, and out of flight time.
-    /// - reduces gravity significantly.
-    /// 
-    /// Dive:
-    /// - activates while airborne, holding dive, and not holding flight.
-    /// - increases gravity for faster downward control.
-    /// 
-    /// Normal falling:
-    /// - uses stronger gravity than rising.
-    /// 
-    /// Also handles snapping out of glide into normal fall speed.
     /// </summary>
     private void ApplyBetterFallGravity()
     {
@@ -261,7 +265,6 @@ public class PlayerMovement : MonoBehaviour
         bool isGliding = !isGrounded && flyHeld && isFalling && isOutOfFlight;
         bool isDiving = !isGrounded && diveHeld && !flyHeld;
 
-        // When glide ends, snap instantly into normal falling speed.
         if (wasGliding && !isGliding)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, maxFallSpeed);
@@ -289,12 +292,6 @@ public class PlayerMovement : MonoBehaviour
 
     /// <summary>
     /// Limits downward velocity based on the current movement state.
-    /// 
-    /// Glide:
-    /// - reduces maximum fall speed.
-    /// 
-    /// Dive:
-    /// - increases maximum fall speed.
     /// </summary>
     private void LimitFallSpeed()
     {
@@ -336,17 +333,19 @@ public class PlayerMovement : MonoBehaviour
     /// Performs a dash toward the mouse cursor.
     /// 
     /// Dash behavior:
+    /// - spends one dash charge,
+    /// - starts dash cooldown,
     /// - ignores previous momentum,
     /// - disables gravity during dash,
     /// - moves at dashSpeed for dashDuration,
-    /// - ends by applying dashEndSpeed in the same direction,
-    /// - then enters cooldown before the next dash is allowed.
+    /// - ends by applying dashEndSpeed in the same direction.
     /// </summary>
     private System.Collections.IEnumerator PerformDash()
     {
-        if (mainCamera == null)
+        if (mainCamera == null || currentDashCharges <= 0 || !canDash)
             yield break;
 
+        currentDashCharges--;
         canDash = false;
         isDashing = true;
 
@@ -356,8 +355,6 @@ public class PlayerMovement : MonoBehaviour
 
         dashDirection = (mouseWorldPosition - transform.position).normalized;
 
-        // Fallback direction in the rare case that the mouse is effectively
-        // at the player's position.
         if (dashDirection.sqrMagnitude < 0.0001f)
         {
             dashDirection = Vector2.right;

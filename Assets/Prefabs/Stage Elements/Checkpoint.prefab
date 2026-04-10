@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &5113743140184596590
+--- !u!1 &2985431048526833721
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,30 +8,30 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1265786808209227934}
+  - component: {fileID: 7111632361437070557}
   m_Layer: 0
-  m_Name: Projectile Spawn Point
+  m_Name: RespawnPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1265786808209227934
+--- !u!4 &7111632361437070557
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5113743140184596590}
+  m_GameObject: {fileID: 2985431048526833721}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 6650762591597214699}
+  m_Father: {fileID: 8329321684349309680}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &7436787789962109477
+--- !u!1 &4758224001406084448
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -39,46 +39,42 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6650762591597214699}
-  - component: {fileID: 4347899095139036373}
-  - component: {fileID: 7203930719521680293}
-  - component: {fileID: 5330181343995978207}
-  - component: {fileID: 3610635330911295569}
-  - component: {fileID: 1538381682516341520}
-  - component: {fileID: 4414340048009529035}
-  - component: {fileID: 8181668744600215373}
-  - component: {fileID: 6751008697840236039}
+  - component: {fileID: 8329321684349309680}
+  - component: {fileID: 8199686291288796992}
+  - component: {fileID: 4269016880360801145}
+  - component: {fileID: 3384264112553159286}
+  - component: {fileID: 5901403160158628134}
   m_Layer: 0
-  m_Name: Simple Ranged
+  m_Name: Checkpoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6650762591597214699
+--- !u!4 &8329321684349309680
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7436787789962109477}
+  m_GameObject: {fileID: 4758224001406084448}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 10, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.44485, y: -0.32073, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1265786808209227934}
+  - {fileID: 7111632361437070557}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &4347899095139036373
+--- !u!212 &8199686291288796992
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7436787789962109477}
+  m_GameObject: {fileID: 4758224001406084448}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -130,52 +126,13 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!114 &7203930719521680293
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7436787789962109477}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 07a54e0556465664a89a6032410f9ca7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
-  maxHealth: 50
---- !u!114 &5330181343995978207
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7436787789962109477}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3dcb3ee126dde7d47a651b2be13593f5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyDamageFlash
-  flashColor: {r: 1, g: 0, b: 0, a: 1}
-  flashDuration: 0.3
---- !u!114 &3610635330911295569
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7436787789962109477}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a57232d80d2ea9e438e1adf62773a368, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyMark
---- !u!61 &1538381682516341520
+--- !u!61 &4269016880360801145
 BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7436787789962109477}
+  m_GameObject: {fileID: 4758224001406084448}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -215,58 +172,30 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
---- !u!114 &4414340048009529035
+--- !u!114 &3384264112553159286
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7436787789962109477}
+  m_GameObject: {fileID: 4758224001406084448}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c0f027cd3a0c8224d8cbcd99f2f8ebc2, type: 3}
+  m_Script: {fileID: 11500000, guid: 8f94c3870c2f5534498cbf99e996a81b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyContactDamage
-  contactDamage: 5
-  damageCooldown: 1
---- !u!114 &8181668744600215373
+  m_EditorClassIdentifier: Assembly-CSharp::Checkpoint
+  respawnPoint: {fileID: 7111632361437070557}
+--- !u!114 &5901403160158628134
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7436787789962109477}
+  m_GameObject: {fileID: 4758224001406084448}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 882b9a3f6dedf2549ad9ca2c77de2790, type: 3}
+  m_Script: {fileID: 11500000, guid: 89c9960b7eacd5c4ea6c08e495d1c5d3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FlyingEnemyKnockback
-  knockbackDistance: 3
-  knockbackDuration: 0.2
---- !u!114 &6751008697840236039
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7436787789962109477}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b769e0034234234c9cda5402ae823f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RangedFlyingEnemy
-  activationRange: 10
-  player: {fileID: 0}
-  sideOffset: 5
-  heightOffset: 5
-  moveSpeed: 5
-  acceleration: 12
-  deceleration: 14
-  stoppingDistance: 0.05
-  minTargetSwitchTime: 2
-  maxTargetSwitchTime: 5
-  attackRange: 10
-  attackPauseDuration: 0.4
-  attackCooldown: 1.5
-  projectilePrefab: {fileID: 5089571314493488957, guid: 0e6f6107ed0957b428a9161e815e7d7c, type: 3}
-  projectileSpawnPoint: {fileID: 1265786808209227934}
+  m_EditorClassIdentifier: Assembly-CSharp::CheckpointFlash
+  flashColor: {r: 0, g: 1, b: 0, a: 1}
+  flashDuration: 0.3
