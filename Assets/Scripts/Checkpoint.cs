@@ -13,7 +13,6 @@ public class Checkpoint : MonoBehaviour
     [Header("Checkpoint")]
     public Transform respawnPoint;
 
-    private bool isActivated;
     private CheckpointFlash checkpointFlash;
 
     private void Awake()
@@ -26,7 +25,6 @@ public class Checkpoint : MonoBehaviour
         if (playerHealth == null)
             return;
 
-        isActivated = true;
 
         playerHealth.ResetToFullHealth();
 

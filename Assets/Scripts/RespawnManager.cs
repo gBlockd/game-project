@@ -1,10 +1,12 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Handles player death, stage reset, fade-to-black, and respawn.
+/// Handles player death, stage reset, fade-to-black, respawn,
+/// and persistent stage state such as activated buttons.
 /// </summary>
 public class RespawnManager : MonoBehaviour
 {
@@ -20,6 +22,9 @@ public class RespawnManager : MonoBehaviour
     private bool isRespawning;
     private bool hasCustomRespawnPoint;
     private Vector3 currentRespawnPoint;
+
+    // Persistent state that survives scene reloads.
+    private readonly HashSet<string> activatedButtons = new HashSet<string>();
 
     private void Awake()
     {
@@ -45,6 +50,22 @@ public class RespawnManager : MonoBehaviour
     {
         currentRespawnPoint = respawnPosition;
         hasCustomRespawnPoint = true;
+    }
+
+    public void SetButtonActivated(string buttonId)
+    {
+        if (string.IsNullOrWhiteSpace(buttonId))
+            return;
+
+        activatedButtons.Add(buttonId);
+    }
+
+    public bool IsButtonActivated(string buttonId)
+    {
+        if (string.IsNullOrWhiteSpace(buttonId))
+            return false;
+
+        return activatedButtons.Contains(buttonId);
     }
 
     private IEnumerator RespawnRoutine(PlayerHealth deadPlayer)

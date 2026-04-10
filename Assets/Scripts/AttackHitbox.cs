@@ -11,7 +11,8 @@ using UnityEngine;
 /// - consumes enemy marks when present,
 /// - applies bonus damage for consuming a mark,
 /// - refreshes projectile cooldown when a marked enemy is hit by melee,
-/// - activates checkpoints hit by the player's melee attack.
+/// - activates checkpoints hit by the player's melee attack,
+/// - activates buttons hit by the player's melee attack.
 /// </summary>
 public class AttackHitbox : MonoBehaviour
 {
@@ -24,6 +25,7 @@ public class AttackHitbox : MonoBehaviour
 
     private readonly HashSet<EnemyHealth> enemiesHit = new HashSet<EnemyHealth>();
     private readonly HashSet<Checkpoint> checkpointsHit = new HashSet<Checkpoint>();
+    private readonly HashSet<DoorButton> buttonsHit = new HashSet<DoorButton>();
 
     private Collider2D hitboxCollider;
 
@@ -36,6 +38,7 @@ public class AttackHitbox : MonoBehaviour
     {
         enemiesHit.Clear();
         checkpointsHit.Clear();
+        buttonsHit.Clear();
         CheckForOverlappingObjects();
     }
 
@@ -64,6 +67,7 @@ public class AttackHitbox : MonoBehaviour
     private void TryInteract(Collider2D other)
     {
         TryActivateCheckpoint(other);
+        TryActivateButton(other);
         TryDamageEnemy(other);
     }
 
@@ -82,6 +86,19 @@ public class AttackHitbox : MonoBehaviour
 
         checkpoint.Activate(playerHealth);
         checkpointsHit.Add(checkpoint);
+    }
+
+    private void TryActivateButton(Collider2D other)
+    {
+        DoorButton button = other.GetComponent<DoorButton>();
+        if (button == null)
+            return;
+
+        if (buttonsHit.Contains(button))
+            return;
+
+        button.Activate();
+        buttonsHit.Add(button);
     }
 
     private void TryDamageEnemy(Collider2D other)
