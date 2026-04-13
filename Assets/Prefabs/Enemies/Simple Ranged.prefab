@@ -257,14 +257,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RangedFlyingEnemy
   activationRange: 10
   player: {fileID: 0}
-  sideOffset: 5
   heightOffset: 5
-  moveSpeed: 5
-  acceleration: 12
-  deceleration: 14
+  minSideOffset: -5
+  maxSideOffset: 5
+  targetSwitchInterval: 2
+  moveSpeed: 10
+  acceleration: 25
+  deceleration: 50
   stoppingDistance: 0.05
-  minTargetSwitchTime: 2
-  maxTargetSwitchTime: 5
   attackRange: 10
   attackPauseDuration: 0.4
   attackCooldown: 1.5

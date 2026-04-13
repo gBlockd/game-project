@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 /// 
 /// Responsibilities:
 /// - horizontal ground/air movement,
+/// - jump with variable jump height,
 /// - flight with limited duration,
 /// - glide behavior when flight is depleted,
 /// - dive behavior while descending,
@@ -19,6 +20,10 @@ public class PlayerMovement : MonoBehaviour
     public float moveSpeed = 8f;
     public float acceleration = 20f;
     public float deceleration = 25f;
+
+    [Header("Jump")]
+    public float jumpSpeed = 10f;
+    [Range(0f, 1f)] public float jumpCutMultiplier = 0.5f;
 
     [Header("Flight")]
     public float maxFlightTime = 5f;
@@ -51,9 +56,11 @@ public class PlayerMovement : MonoBehaviour
 
     // Input state.
     private float horizontalInput;
+    private bool jumpPressed;
     private bool flyHeld;
     private bool diveHeld;
     private bool dashPressed;
+    private bool isInFlightMode;
 
     // Horizontal movement state.
     private float currentHorizontalSpeed;
@@ -64,6 +71,9 @@ public class PlayerMovement : MonoBehaviour
     // Ground state.
     private bool isGrounded;
     private bool wasGrounded;
+
+    // Jump state.
+    private bool hasStartedJump;
 
     // Glide state.
     private bool wasGliding;
@@ -87,9 +97,6 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 lastGroundedPosition;
     public Vector2 LastGroundedPosition => lastGroundedPosition;
 
-    /// <summary>
-    /// Caches component references and initializes runtime values.
-    /// </summary>
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -104,42 +111,50 @@ public class PlayerMovement : MonoBehaviour
     public void ResetMomentum()
     {
         currentHorizontalSpeed = 0f;
+        jumpPressed = false;
+        hasStartedJump = false;
         dashPressed = false;
         isDashing = false;
         dashDirection = Vector2.zero;
     }
 
-    /// <summary>
-    /// Input System callback for horizontal movement.
-    /// Reads a 1D axis value for left/right movement.
-    /// </summary>
     public void OnMoveHorizontal(InputAction.CallbackContext context)
     {
         horizontalInput = context.ReadValue<float>();
     }
 
-    /// <summary>
-    /// Input System callback for flight input.
-    /// Tracks whether the flight button is currently held.
-    /// </summary>
+    public void OnJump(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            jumpPressed = true;
+        }
+        else if (context.canceled)
+        {
+
+            // Variable jump height:
+            // if the button is released while still rising from a jump,
+            // reduce upward velocity so the jump ends earlier.
+            if (hasStartedJump && rb.linearVelocity.y > 0f)
+            {
+                rb.linearVelocity = new Vector2(
+                    rb.linearVelocity.x,
+                    rb.linearVelocity.y * jumpCutMultiplier
+                );
+            }
+        }
+    }
+
     public void OnFly(InputAction.CallbackContext context)
     {
         flyHeld = context.ReadValueAsButton();
     }
 
-    /// <summary>
-    /// Input System callback for dive input.
-    /// Tracks whether the dive button is currently held.
-    /// </summary>
     public void OnDive(InputAction.CallbackContext context)
     {
         diveHeld = context.ReadValueAsButton();
     }
 
-    /// <summary>
-    /// Input System callback for dash input.
-    /// Queues a dash request that will be processed in Update().
-    /// </summary>
     public void OnDash(InputAction.CallbackContext context)
     {
         if (context.performed)
@@ -148,10 +163,6 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Updates ground state, refills flight and dash charges on landing,
-    /// and starts a dash if requested.
-    /// </summary>
     private void Update()
     {
         wasGrounded = isGrounded;
@@ -165,6 +176,8 @@ public class PlayerMovement : MonoBehaviour
         if (isGrounded)
         {
             lastGroundedPosition = transform.position;
+            hasStartedJump = false;
+            isInFlightMode = false;
         }
 
         // Refill flight and dash charges instantly on landing.
@@ -186,56 +199,62 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Runs the player's physics-based movement logic.
-    /// 
-    /// While dashing, normal movement logic is skipped so the dash
-    /// fully controls the player's velocity.
-    /// </summary>
     private void FixedUpdate()
     {
         if (isDashing)
             return;
 
         HandleHorizontalMovement();
+        HandleJump();
         HandleFlight();
         ApplyBetterFallGravity();
         LimitFallSpeed();
     }
 
-    /// <summary>
-    /// Handles horizontal movement acceleration/deceleration.
-    /// 
-    /// Air movement uses doubled speed and acceleration compared to grounded movement.
-    /// </summary>
     private void HandleHorizontalMovement()
     {
-        float speedMultiplier = isGrounded ? 1f : 2f;
-        float accelMultiplier = isGrounded ? 1f : 2f;
+        if (isInFlightMode)
+        {
+            float targetSpeed = horizontalInput * moveSpeed * 2f;
+            float rate = Mathf.Abs(targetSpeed) > 0.01f
+                ? acceleration * 2f
+                : deceleration * 2f;
 
-        float targetSpeed = horizontalInput * moveSpeed * speedMultiplier;
-        float rate = Mathf.Abs(targetSpeed) > 0.01f
-            ? acceleration * accelMultiplier
-            : deceleration * accelMultiplier;
-
-        currentHorizontalSpeed = Mathf.MoveTowards(
-            currentHorizontalSpeed,
-            targetSpeed,
-            rate * Time.fixedDeltaTime
-        );
+            currentHorizontalSpeed = Mathf.MoveTowards(
+                currentHorizontalSpeed,
+                targetSpeed,
+                rate * Time.fixedDeltaTime
+            );
+        }
+        else
+        {
+            currentHorizontalSpeed = horizontalInput * moveSpeed;
+        }
 
         rb.linearVelocity = new Vector2(currentHorizontalSpeed, rb.linearVelocity.y);
     }
 
-    /// <summary>
-    /// Handles upward flight behavior.
-    /// </summary>
+    private void HandleJump()
+    {
+        // Flight takes priority over jump.
+        if (!jumpPressed || !isGrounded || flyHeld)
+        {
+            jumpPressed = false;
+            return;
+        }
+
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpSpeed);
+        hasStartedJump = true;
+        jumpPressed = false;
+    }
+
     private void HandleFlight()
     {
         if (isGrounded)
         {
             if (flyHeld)
             {
+                isInFlightMode = true;
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, groundTakeoffSpeed);
             }
 
@@ -244,6 +263,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (flyHeld && currentFlightTime > 0f)
         {
+            isInFlightMode = true;
+
             currentFlightTime -= Time.fixedDeltaTime;
             currentFlightTime = Mathf.Max(currentFlightTime, 0f);
 
@@ -254,9 +275,6 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Applies state-based gravity tuning for falling, gliding, and diving.
-    /// </summary>
     private void ApplyBetterFallGravity()
     {
         bool isFalling = rb.linearVelocity.y < 0f;
@@ -290,9 +308,6 @@ public class PlayerMovement : MonoBehaviour
         wasGliding = isGliding;
     }
 
-    /// <summary>
-    /// Limits downward velocity based on the current movement state.
-    /// </summary>
     private void LimitFallSpeed()
     {
         float currentMaxFallSpeed = maxFallSpeed;
@@ -318,9 +333,6 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Draws the ground check radius in the editor for easier tuning and debugging.
-    /// </summary>
     private void OnDrawGizmosSelected()
     {
         if (groundCheck == null) return;
@@ -329,17 +341,6 @@ public class PlayerMovement : MonoBehaviour
         Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
     }
 
-    /// <summary>
-    /// Performs a dash toward the mouse cursor.
-    /// 
-    /// Dash behavior:
-    /// - spends one dash charge,
-    /// - starts dash cooldown,
-    /// - ignores previous momentum,
-    /// - disables gravity during dash,
-    /// - moves at dashSpeed for dashDuration,
-    /// - ends by applying dashEndSpeed in the same direction.
-    /// </summary>
     private System.Collections.IEnumerator PerformDash()
     {
         if (mainCamera == null || currentDashCharges <= 0 || !canDash)

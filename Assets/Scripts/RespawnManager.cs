@@ -26,6 +26,9 @@ public class RespawnManager : MonoBehaviour
     // Persistent state that survives scene reloads.
     private readonly HashSet<string> activatedButtons = new HashSet<string>();
 
+    // Runtime door registry by button ID.
+    private readonly Dictionary<string, List<LockedDoor>> registeredDoors = new Dictionary<string, List<LockedDoor>>();
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -57,7 +60,11 @@ public class RespawnManager : MonoBehaviour
         if (string.IsNullOrWhiteSpace(buttonId))
             return;
 
+        if (activatedButtons.Contains(buttonId))
+            return;
+
         activatedButtons.Add(buttonId);
+        OpenRegisteredDoors(buttonId);
     }
 
     public bool IsButtonActivated(string buttonId)
@@ -66,6 +73,36 @@ public class RespawnManager : MonoBehaviour
             return false;
 
         return activatedButtons.Contains(buttonId);
+    }
+
+    public void RegisterDoor(LockedDoor door)
+    {
+        if (door == null || string.IsNullOrWhiteSpace(door.buttonId))
+            return;
+
+        if (!registeredDoors.ContainsKey(door.buttonId))
+        {
+            registeredDoors[door.buttonId] = new List<LockedDoor>();
+        }
+
+        if (!registeredDoors[door.buttonId].Contains(door))
+        {
+            registeredDoors[door.buttonId].Add(door);
+        }
+    }
+
+    private void OpenRegisteredDoors(string buttonId)
+    {
+        if (!registeredDoors.TryGetValue(buttonId, out List<LockedDoor> doors))
+            return;
+
+        for (int i = 0; i < doors.Count; i++)
+        {
+            if (doors[i] != null)
+            {
+                doors[i].UpdateDoorState();
+            }
+        }
     }
 
     private IEnumerator RespawnRoutine(PlayerHealth deadPlayer)

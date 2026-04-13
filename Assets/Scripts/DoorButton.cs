@@ -49,20 +49,5 @@ public class DoorButton : MonoBehaviour
         {
             RespawnManager.Instance.SetButtonActivated(buttonId);
         }
-
-        OpenMatchingDoors();
-    }
-
-    private void OpenMatchingDoors()
-    {
-        LockedDoor[] allDoors = FindObjectsByType<LockedDoor>(FindObjectsSortMode.None);
-
-        for (int i = 0; i < allDoors.Length; i++)
-        {
-            if (allDoors[i].buttonId == buttonId)
-            {
-                allDoors[i].UpdateDoorState();
-            }
-        }
     }
 }
