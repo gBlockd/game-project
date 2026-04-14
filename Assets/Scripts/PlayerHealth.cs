@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Handles health logic for the player.
+/// Handles health logic for the player and syncs it with persistent game state.
 /// </summary>
 public class PlayerHealth : MonoBehaviour
 {
@@ -19,8 +19,17 @@ public class PlayerHealth : MonoBehaviour
 
     private void Awake()
     {
-        currentHealth = maxHealth;
         damageFlash = GetComponent<PlayerDamageFlash>();
+
+        if (GameStateManager.Instance != null)
+        {
+            maxHealth = GameStateManager.Instance.maxHealth;
+            currentHealth = GameStateManager.Instance.currentHealth;
+        }
+        else
+        {
+            currentHealth = maxHealth;
+        }
     }
 
     public void TakeDamage(int amount)
@@ -30,6 +39,8 @@ public class PlayerHealth : MonoBehaviour
 
         currentHealth -= amount;
         currentHealth = Mathf.Max(currentHealth, 0);
+
+        SyncHealthToGameState();
 
         if (damageFlash != null)
         {
@@ -54,11 +65,23 @@ public class PlayerHealth : MonoBehaviour
 
         currentHealth += amount;
         currentHealth = Mathf.Min(currentHealth, maxHealth);
+
+        SyncHealthToGameState();
     }
 
     public void ResetToFullHealth()
     {
         currentHealth = maxHealth;
         isDead = false;
+
+        SyncHealthToGameState();
+    }
+
+    private void SyncHealthToGameState()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetHealth(currentHealth, maxHealth);
+        }
     }
 }
