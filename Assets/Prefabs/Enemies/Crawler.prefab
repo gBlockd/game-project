@@ -114,6 +114,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 20
+  enemyId: 
 --- !u!114 &1822493978792616670
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -328,7 +329,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyContactDamage
   contactDamage: 20
-  damageCooldown: 0.5
+  damageCooldown: 1
 --- !u!61 &3501207387019109880
 BoxCollider2D:
   m_ObjectHideFlags: 0

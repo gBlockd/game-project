@@ -4,7 +4,7 @@ using UnityEngine;
 /// A door that disappears permanently once its matching button is activated.
 /// 
 /// Behavior:
-/// - registers itself with the RespawnManager,
+/// - registers itself with the GameStateManager,
 /// - checks whether its linked button has already been activated,
 /// - disables itself when that button is activated,
 /// - remains open after respawn/scene reload.
@@ -16,16 +16,16 @@ public class LockedDoor : MonoBehaviour
 
     private void Start()
     {
-        if (RespawnManager.Instance != null)
+        if (GameStateManager.Instance != null)
         {
-            RespawnManager.Instance.RegisterDoor(this);
+            GameStateManager.Instance.RegisterDoor(this);
             UpdateDoorState();
         }
     }
 
     public void UpdateDoorState()
     {
-        if (RespawnManager.Instance != null && RespawnManager.Instance.IsButtonActivated(buttonId))
+        if (GameStateManager.Instance != null && GameStateManager.Instance.IsButtonActivated(buttonId))
         {
             OpenDoor();
         }

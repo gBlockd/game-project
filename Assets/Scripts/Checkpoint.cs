@@ -1,11 +1,12 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Checkpoint object that can be activated by the player's melee attack.
 /// 
 /// When activated:
 /// - heals the player to full,
-/// - updates the player's respawn point in the RespawnManager,
+/// - updates the player's respawn point in the GameStateManager,
 /// - flashes green for visual feedback.
 /// </summary>
 public class Checkpoint : MonoBehaviour
@@ -25,19 +26,20 @@ public class Checkpoint : MonoBehaviour
         if (playerHealth == null)
             return;
 
-
         playerHealth.ResetToFullHealth();
 
         Vector3 respawnPosition = respawnPoint != null
             ? respawnPoint.position
             : transform.position;
 
-        if (RespawnManager.Instance != null)
+        if (GameStateManager.Instance != null)
         {
-            RespawnManager.Instance.SetRespawnPoint(respawnPosition);
+            GameStateManager.Instance.SetCheckpoint(
+                SceneManager.GetActiveScene().name,
+                respawnPosition
+            );
         }
 
-        // Trigger flash
         if (checkpointFlash != null)
         {
             checkpointFlash.Flash();

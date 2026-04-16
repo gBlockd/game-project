@@ -1,12 +1,13 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Handles player death, stage reset, fade-to-black, respawn,
-/// and persistent stage state such as activated buttons.
+/// Handles player death, stage reset, fade-to-black, and respawn.
+/// 
+/// Persistent world state such as checkpoints, activated buttons,
+/// and killed enemies is stored in GameStateManager.
 /// </summary>
 public class RespawnManager : MonoBehaviour
 {
@@ -20,14 +21,6 @@ public class RespawnManager : MonoBehaviour
     public ScreenFader screenFader;
 
     private bool isRespawning;
-    private bool hasCustomRespawnPoint;
-    private Vector3 currentRespawnPoint;
-
-    // Persistent state that survives scene reloads.
-    private readonly HashSet<string> activatedButtons = new HashSet<string>();
-
-    // Runtime door registry by button ID.
-    private readonly Dictionary<string, List<LockedDoor>> registeredDoors = new Dictionary<string, List<LockedDoor>>();
 
     private void Awake()
     {
@@ -38,6 +31,7 @@ public class RespawnManager : MonoBehaviour
         }
 
         Instance = this;
+        transform.SetParent(null);
         DontDestroyOnLoad(gameObject);
     }
 
@@ -47,62 +41,6 @@ public class RespawnManager : MonoBehaviour
             return;
 
         StartCoroutine(RespawnRoutine(deadPlayer));
-    }
-
-    public void SetRespawnPoint(Vector3 respawnPosition)
-    {
-        currentRespawnPoint = respawnPosition;
-        hasCustomRespawnPoint = true;
-    }
-
-    public void SetButtonActivated(string buttonId)
-    {
-        if (string.IsNullOrWhiteSpace(buttonId))
-            return;
-
-        if (activatedButtons.Contains(buttonId))
-            return;
-
-        activatedButtons.Add(buttonId);
-        OpenRegisteredDoors(buttonId);
-    }
-
-    public bool IsButtonActivated(string buttonId)
-    {
-        if (string.IsNullOrWhiteSpace(buttonId))
-            return false;
-
-        return activatedButtons.Contains(buttonId);
-    }
-
-    public void RegisterDoor(LockedDoor door)
-    {
-        if (door == null || string.IsNullOrWhiteSpace(door.buttonId))
-            return;
-
-        if (!registeredDoors.ContainsKey(door.buttonId))
-        {
-            registeredDoors[door.buttonId] = new List<LockedDoor>();
-        }
-
-        if (!registeredDoors[door.buttonId].Contains(door))
-        {
-            registeredDoors[door.buttonId].Add(door);
-        }
-    }
-
-    private void OpenRegisteredDoors(string buttonId)
-    {
-        if (!registeredDoors.TryGetValue(buttonId, out List<LockedDoor> doors))
-            return;
-
-        for (int i = 0; i < doors.Count; i++)
-        {
-            if (doors[i] != null)
-            {
-                doors[i].UpdateDoorState();
-            }
-        }
     }
 
     private IEnumerator RespawnRoutine(PlayerHealth deadPlayer)
@@ -119,7 +57,27 @@ public class RespawnManager : MonoBehaviour
             yield return screenFader.FadeToBlack();
         }
 
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        // Enemies should only stay dead until the player dies.
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.ClearKilledEnemies();
+        }
+
+        string targetSceneName = SceneManager.GetActiveScene().name;
+
+        if (GameStateManager.Instance != null)
+        {
+            if (GameStateManager.Instance.HasCheckpoint)
+            {
+                targetSceneName = GameStateManager.Instance.CheckpointSceneName;
+            }
+            else if (GameStateManager.Instance.HasInitialSpawn)
+            {
+                targetSceneName = GameStateManager.Instance.InitialSpawnSceneName;
+            }
+        }
+
+        SceneManager.LoadScene(targetSceneName);
         yield return null;
 
         PlayerHealth newPlayer = FindAnyObjectByType<PlayerHealth>();
@@ -130,9 +88,13 @@ public class RespawnManager : MonoBehaviour
             FreezePlayer(newPlayer.gameObject);
             SetPlayerVisible(newPlayer.gameObject, false);
 
-            if (hasCustomRespawnPoint)
+            if (GameStateManager.Instance != null && GameStateManager.Instance.HasCheckpoint)
             {
-                newPlayer.transform.position = currentRespawnPoint;
+                newPlayer.transform.position = GameStateManager.Instance.CheckpointPosition;
+            }
+            else if (GameStateManager.Instance != null && GameStateManager.Instance.HasInitialSpawn)
+            {
+                newPlayer.transform.position = GameStateManager.Instance.InitialSpawnPosition;
             }
             else if (defaultSpawnPoint != null)
             {

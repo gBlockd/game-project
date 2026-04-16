@@ -15,7 +15,7 @@ public class SceneTransitionTrigger : MonoBehaviour
         if (playerHealth == null)
             return;
 
-        if (SceneTransitionManager.Instance != null)
+        if (SceneTransitionManager.Instance != null && !SceneTransitionManager.Instance.IsTransitioning)
         {
             SceneTransitionManager.Instance.TransitionToScene(targetSceneName, targetEntranceId);
         }

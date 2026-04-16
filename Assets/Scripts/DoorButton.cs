@@ -6,7 +6,7 @@ using UnityEngine;
 /// Behavior:
 /// - can be activated by the player's melee attack,
 /// - only activates once,
-/// - stores its activated state in the RespawnManager,
+/// - stores its activated state in the GameStateManager,
 /// - remains activated after respawn/scene reload,
 /// - flashes when struck to confirm hit detection.
 /// </summary>
@@ -27,7 +27,7 @@ public class DoorButton : MonoBehaviour
 
     private void Start()
     {
-        if (RespawnManager.Instance != null && RespawnManager.Instance.IsButtonActivated(buttonId))
+        if (GameStateManager.Instance != null && GameStateManager.Instance.IsButtonActivated(buttonId))
         {
             isActivated = true;
         }
@@ -45,9 +45,9 @@ public class DoorButton : MonoBehaviour
 
         isActivated = true;
 
-        if (RespawnManager.Instance != null)
+        if (GameStateManager.Instance != null)
         {
-            RespawnManager.Instance.SetButtonActivated(buttonId);
+            GameStateManager.Instance.SetButtonActivated(buttonId);
         }
     }
 }

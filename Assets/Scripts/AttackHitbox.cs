@@ -136,7 +136,6 @@ public class AttackHitbox : MonoBehaviour
             if (playerProjectileAttack != null)
             {
                 playerProjectileAttack.RefreshProjectileCooldown();
-                Debug.Log("Marked enemy hit by melee. Projectile cooldown refreshed.");
             }
         }
     }

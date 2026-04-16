@@ -509,8 +509,9 @@ MonoBehaviour:
   moveSpeed: 5
   acceleration: 40
   deceleration: 30
-  jumpSpeed: 10
+  jumpSpeed: 17
   jumpCutMultiplier: 0.5
+  coyoteTimeDuration: 0.1
   maxFlightTime: 5
   groundTakeoffSpeed: 5
   flightAcceleration: 60

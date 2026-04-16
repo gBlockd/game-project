@@ -24,6 +24,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Jump")]
     public float jumpSpeed = 10f;
     [Range(0f, 1f)] public float jumpCutMultiplier = 0.5f;
+    public float coyoteTimeDuration = 0.1f;
 
     [Header("Flight")]
     public float maxFlightTime = 5f;
@@ -74,6 +75,7 @@ public class PlayerMovement : MonoBehaviour
 
     // Jump state.
     private bool hasStartedJump;
+    private float coyoteTimeCounter;
 
     // Glide state.
     private bool wasGliding;
@@ -113,6 +115,7 @@ public class PlayerMovement : MonoBehaviour
         currentHorizontalSpeed = 0f;
         jumpPressed = false;
         hasStartedJump = false;
+        coyoteTimeCounter = 0f;
         dashPressed = false;
         isDashing = false;
         dashDirection = Vector2.zero;
@@ -178,6 +181,11 @@ public class PlayerMovement : MonoBehaviour
             lastGroundedPosition = transform.position;
             hasStartedJump = false;
             isInFlightMode = false;
+            coyoteTimeCounter = coyoteTimeDuration;
+        }
+        else
+        {
+            coyoteTimeCounter -= Time.deltaTime;
         }
 
         // Refill flight and dash charges instantly on landing.
@@ -237,7 +245,15 @@ public class PlayerMovement : MonoBehaviour
     private void HandleJump()
     {
         // Flight takes priority over jump.
-        if (!jumpPressed || !isGrounded || flyHeld)
+        if (!jumpPressed || flyHeld)
+        {
+            jumpPressed = false;
+            return;
+        }
+
+        bool canUseJump = isGrounded || coyoteTimeCounter > 0f;
+
+        if (!canUseJump)
         {
             jumpPressed = false;
             return;
@@ -245,6 +261,7 @@ public class PlayerMovement : MonoBehaviour
 
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpSpeed);
         hasStartedJump = true;
+        coyoteTimeCounter = 0f;
         jumpPressed = false;
     }
 

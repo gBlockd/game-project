@@ -207,13 +207,47 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
 
         Vector2 hoverTarget = (Vector2)player.position + new Vector2(currentSideOffset, heightOffset);
 
+        // Activation range
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, activationRange);
 
+        // Attack range
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+
+        // Hover target point
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(hoverTarget, 0.2f);
 
-        Gizmos.color = Color.magenta;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        // Line to hover target
+        Gizmos.color = Color.white;
+        Gizmos.DrawLine(transform.position, hoverTarget);
+
+        // Horizontal offset bounds (where the hover point can appear)
+        Gizmos.color = Color.yellow;
+
+        float leftBound = player.position.x + minSideOffset;
+        float rightBound = player.position.x + maxSideOffset;
+        float y = player.position.y + heightOffset;
+
+        Gizmos.DrawLine(
+            new Vector3(leftBound, y, 0f),
+            new Vector3(rightBound, y, 0f)
+        );
+
+        // Vertical guide (player to hover band)
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(
+            new Vector3(player.position.x, player.position.y, 0f),
+            new Vector3(player.position.x, y, 0f)
+        );
+
+        // Projectile direction preview
+        if (projectileSpawnPoint != null)
+        {
+            Gizmos.color = Color.blue;
+            Vector2 dir = ((Vector2)player.position - (Vector2)projectileSpawnPoint.position).normalized;
+            Gizmos.DrawLine(projectileSpawnPoint.position, projectileSpawnPoint.position + (Vector3)(dir * 1.5f));
+        }
     }
 }
