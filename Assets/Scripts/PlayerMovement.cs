@@ -102,6 +102,7 @@ public class PlayerMovement : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+
         currentFlightTime = maxFlightTime;
         currentDashCharges = maxDashCharges;
 
@@ -187,6 +188,9 @@ public class PlayerMovement : MonoBehaviour
         {
             coyoteTimeCounter -= Time.deltaTime;
         }
+
+        // When the player first leaves the ground, choose the nearest
+        // manually placed hazard recovery point.
 
         // Refill flight and dash charges instantly on landing.
         if (isGrounded && !wasGrounded)

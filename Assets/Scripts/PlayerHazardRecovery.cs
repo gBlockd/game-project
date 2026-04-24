@@ -6,9 +6,11 @@ using UnityEngine.InputSystem;
 /// Handles non-lethal hazard recovery for the player.
 /// 
 /// Behavior:
+/// - stores the current hazard recovery position,
+/// - allows recovery zones to update that position by ID,
 /// - applies hazard damage,
 /// - briefly freezes the player,
-/// - returns them to their last grounded position,
+/// - returns them to the selected hazard recovery point,
 /// - restores control afterward.
 /// 
 /// If the damage kills the player, normal death handling takes over instead.
@@ -22,12 +24,38 @@ public class PlayerHazardRecovery : MonoBehaviour
     private PlayerMovement playerMovement;
     private bool isRecovering;
 
+    private Vector2 currentRecoveryPosition;
+
     public bool IsRecovering => isRecovering;
 
     private void Awake()
     {
         playerHealth = GetComponent<PlayerHealth>();
         playerMovement = GetComponent<PlayerMovement>();
+
+        currentRecoveryPosition = transform.position;
+    }
+
+    /// <summary>
+    /// Sets the current recovery position using a matching HazardRecoveryPoint ID.
+    /// </summary>
+    public void SetRecoveryPointById(string recoveryPointId)
+    {
+        if (string.IsNullOrWhiteSpace(recoveryPointId))
+            return;
+
+        HazardRecoveryPoint[] recoveryPoints = FindObjectsByType<HazardRecoveryPoint>();
+
+        for (int i = 0; i < recoveryPoints.Length; i++)
+        {
+            if (recoveryPoints[i].recoveryPointId == recoveryPointId)
+            {
+                currentRecoveryPosition = recoveryPoints[i].transform.position;
+                return;
+            }
+        }
+
+        Debug.LogWarning("No HazardRecoveryPoint found with ID: " + recoveryPointId);
     }
 
     public void HandleHazardHit(int damage)
@@ -45,9 +73,7 @@ public class PlayerHazardRecovery : MonoBehaviour
     {
         isRecovering = true;
 
-        Vector2 returnPosition = playerMovement != null
-            ? playerMovement.LastGroundedPosition
-            : transform.position;
+        Vector2 returnPosition = currentRecoveryPosition;
 
         playerHealth.TakeDamage(damage);
 
