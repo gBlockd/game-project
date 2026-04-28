@@ -33,8 +33,8 @@ public class PlayerMovement : MonoBehaviour
     public float maxRiseSpeed = 10f;
 
     [Header("Ground Check")]
-    public Transform groundCheck;
-    public float groundCheckRadius = 0.15f;
+    public Collider2D bodyCollider;
+    public float groundCheckDistance = 0.08f;
     public LayerMask groundLayer;
 
     [Header("Fall Settings")]
@@ -109,6 +109,10 @@ public class PlayerMovement : MonoBehaviour
         mainCamera = Camera.main;
         normalGravityScale = rb.gravityScale;
         lastGroundedPosition = transform.position;
+        if (bodyCollider == null)
+        {
+            bodyCollider = GetComponent<Collider2D>();
+        }
     }
 
     public void ResetMomentum()
@@ -171,9 +175,12 @@ public class PlayerMovement : MonoBehaviour
     {
         wasGrounded = isGrounded;
 
-        isGrounded = Physics2D.OverlapCircle(
-            groundCheck.position,
-            groundCheckRadius,
+        isGrounded = Physics2D.BoxCast(
+            bodyCollider.bounds.center,
+            bodyCollider.bounds.size,
+            0f,
+            Vector2.down,
+            groundCheckDistance,
             groundLayer
         );
 
@@ -356,10 +363,17 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (groundCheck == null) return;
+        if (bodyCollider == null)
+            return;
 
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+
+        Bounds bounds = bodyCollider.bounds;
+
+        Vector3 castCenter = bounds.center + Vector3.down * groundCheckDistance;
+        Vector3 castSize = bounds.size;
+
+        Gizmos.DrawWireCube(castCenter, castSize);
     }
 
     private System.Collections.IEnumerator PerformDash()

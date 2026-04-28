@@ -7,12 +7,13 @@ public class HazardRecoveryZone : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-       PlayerHazardRecovery hazardRecovery = GetComponent<PlayerHazardRecovery>();
+        PlayerHazardRecovery hazardRecovery = other.GetComponent<PlayerHazardRecovery>();
         if (hazardRecovery == null)
             return;
 
         hazardRecovery.SetRecoveryPointById(recoveryPointId);
     }
+
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.blue;
