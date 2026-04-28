@@ -17,6 +17,10 @@ public class EnemyContactDamage : MonoBehaviour
         if (playerHealth == null)
             return;
 
+        ProjectileChargerEnemy projectileCharger = GetComponentInParent<ProjectileChargerEnemy>();
+        if (projectileCharger != null && !projectileCharger.CanDealContactDamage)
+            return;
+
         if (Time.time < lastDamageTime + damageCooldown)
             return;
 
