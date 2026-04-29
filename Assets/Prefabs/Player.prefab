@@ -525,7 +525,7 @@ MonoBehaviour:
   glideFallSpeedMultiplier: 0.5
   diveGravityMultiplier: 2.5
   diveFallSpeedMultiplier: 1.5
-  dashSpeed: 25
+  dashSpeed: 34
   dashDuration: 0.25
   dashEndSpeed: 16
   maxDashCharges: 3
@@ -543,6 +543,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
   maxHealth: 100
+  invincibilityDuration: 0.5
 --- !u!114 &3007913999065541660
 MonoBehaviour:
   m_ObjectHideFlags: 0

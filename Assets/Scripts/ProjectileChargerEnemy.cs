@@ -7,15 +7,18 @@ using UnityEngine;
 /// Pattern 1:
 /// - Chooses a random target point on a circle centered on the player.
 /// - Moves toward that point using acceleration/deceleration.
-/// - When close enough, pauses, fires two spread projectiles, then dashes toward
-///   the player's locked position.
+/// - Dashes on a fixed timer, regardless of distance from the target point.
+/// - Before dashing, pauses and locks onto the player's current position.
+/// - Fires two spread projectiles, then dashes toward the locked player position.
+/// - After dashing, quickly repositions toward its current target point for a short period.
 /// - After four dashes, switches to Pattern 2.
 ///
 /// Pattern 2:
-/// - Moves directly to the top point of the circle.
+/// - Rapidly moves to the top point of the circle.
 /// - Locks to that point for a pause.
 /// - Rotates once around the full circle over time, carrying the enemy with it.
-/// - Fires directly at the player every set interval during the rotation.
+/// - Fires projectiles every set interval during the rotation.
+/// - Alternates between a regular single-projectile variant and a fast double-projectile variant.
 /// - After the full circle, returns to Pattern 1.
 ///
 /// This enemy does not receive knockback.
@@ -35,7 +38,6 @@ public class ProjectileChargerEnemy : MonoBehaviour
     [Header("Target")]
     public Transform player;
     public float circleRadius = 4f;
-    public float targetReachDistance = 0.25f;
 
     [Header("Movement")]
     public float moveSpeed = 4f;
@@ -44,30 +46,43 @@ public class ProjectileChargerEnemy : MonoBehaviour
     public float stoppingDistance = 0.05f;
 
     [Header("Dash Attack")]
+    public float dashInterval = 2f;
     public float dashPauseDuration = 0.4f;
     public float dashSpeed = 12f;
     public float dashDuration = 0.2f;
-    public float dashCooldown = 1.2f;
     public int dashesBeforeOrbitPattern = 4;
 
+    [Header("Post-Dash Reposition")]
+    public float postDashRepositionDuration = 1f;
+    public float postDashMoveSpeed = 12f;
+    public float postDashAcceleration = 80f;
+    public float postDashDeceleration = 80f;
+
+    [Header("Dash Contact Check")]
+    public float dashDamageCheckRadius = 0.35f;
+
     [Header("Orbit Attack")]
-    public float orbitMoveSpeed = 6f;
+    public float orbitApproachDuration = 0.35f;
     public float orbitStartPauseDuration = 1f;
     public float orbitDuration = 3f;
     public float orbitProjectileInterval = 0.5f;
 
     [Header("Projectiles")]
     public GameObject projectilePrefab;
+    public GameObject dashProjectilePrefab;
     public Transform projectileSpawnPoint;
     public float projectileSpreadAngle = 20f;
 
     private bool isActive;
     private bool isPreparingDash;
     private bool isDashing;
+    private bool isPostDashRepositioning;
     private bool canDash = true;
     private bool isOrbitPatternRunning;
+    private bool useFastOrbitVariant;
 
     private int completedDashCount;
+    private float dashTimer;
 
     private AttackPattern currentPattern = AttackPattern.DashPattern;
 
@@ -75,7 +90,14 @@ public class ProjectileChargerEnemy : MonoBehaviour
     private Vector2 dashDirection;
     private Vector2 currentVelocity;
 
+    private EnemyContactDamage contactDamage;
+
     public bool CanDealContactDamage => isDashing;
+
+    private void Awake()
+    {
+        contactDamage = GetComponentInChildren<EnemyContactDamage>();
+    }
 
     private void Update()
     {
@@ -98,15 +120,11 @@ public class ProjectileChargerEnemy : MonoBehaviour
             return;
         }
 
-        if (isPreparingDash || isDashing)
+        if (isPreparingDash || isDashing || isPostDashRepositioning)
             return;
 
-        TryStartDash();
-
-        if (!isPreparingDash && !isDashing)
-        {
-            HandleChaseMovement();
-        }
+        HandleChaseMovement();
+        UpdateDashTimer();
     }
 
     private void TryActivate()
@@ -116,6 +134,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
         if (distanceToPlayer <= activationRange)
         {
             isActive = true;
+            dashTimer = dashInterval;
             PickRandomCircleTarget();
         }
     }
@@ -142,15 +161,38 @@ public class ProjectileChargerEnemy : MonoBehaviour
         transform.position += (Vector3)(currentVelocity * Time.deltaTime);
     }
 
-    private void TryStartDash()
+    private void HandlePostDashRepositionMovement()
+    {
+        Vector2 chosenTarget = GetCurrentCircleTarget();
+        Vector2 toTarget = chosenTarget - (Vector2)transform.position;
+        Vector2 desiredVelocity = Vector2.zero;
+
+        if (toTarget.magnitude > stoppingDistance)
+        {
+            desiredVelocity = toTarget.normalized * postDashMoveSpeed;
+        }
+
+        float rate = desiredVelocity.sqrMagnitude > 0.001f
+            ? postDashAcceleration
+            : postDashDeceleration;
+
+        currentVelocity = Vector2.MoveTowards(
+            currentVelocity,
+            desiredVelocity,
+            rate * Time.deltaTime
+        );
+
+        transform.position += (Vector3)(currentVelocity * Time.deltaTime);
+    }
+
+    private void UpdateDashTimer()
     {
         if (!canDash)
             return;
 
-        Vector2 chosenTarget = GetCurrentCircleTarget();
-        float distanceToTarget = Vector2.Distance(transform.position, chosenTarget);
+        dashTimer -= Time.deltaTime;
 
-        if (distanceToTarget <= targetReachDistance)
+        if (dashTimer <= 0f)
         {
             StartCoroutine(DashSequence());
         }
@@ -188,9 +230,9 @@ public class ProjectileChargerEnemy : MonoBehaviour
             dashDirection = Vector2.right;
         }
 
-        FireDashProjectiles();
-
         yield return new WaitForSeconds(dashPauseDuration);
+
+        FireDashProjectiles();
 
         isPreparingDash = false;
         isDashing = true;
@@ -199,7 +241,14 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         while (elapsed < dashDuration)
         {
-            transform.position += (Vector3)(dashDirection * dashSpeed * Time.deltaTime);
+            Vector2 previousPosition = transform.position;
+            Vector2 movement = dashDirection * dashSpeed * Time.deltaTime;
+            Vector2 nextPosition = previousPosition + movement;
+
+            CheckDashContactDamage(previousPosition, nextPosition);
+
+            transform.position = nextPosition;
+
             elapsed += Time.deltaTime;
             yield return null;
         }
@@ -212,15 +261,63 @@ public class ProjectileChargerEnemy : MonoBehaviour
         if (completedDashCount >= dashesBeforeOrbitPattern)
         {
             currentPattern = AttackPattern.OrbitPattern;
-        }
-        else
-        {
-            PickRandomCircleTarget();
+            dashTimer = dashInterval;
+            canDash = true;
+            yield break;
         }
 
-        yield return new WaitForSeconds(dashCooldown);
+        PickRandomCircleTarget();
 
+        yield return StartCoroutine(PostDashRepositionSequence());
+
+        dashTimer = dashInterval;
         canDash = true;
+    }
+
+    private IEnumerator PostDashRepositionSequence()
+    {
+        isPostDashRepositioning = true;
+
+        float elapsed = 0f;
+
+        while (elapsed < postDashRepositionDuration)
+        {
+            HandlePostDashRepositionMovement();
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        currentVelocity = Vector2.zero;
+        isPostDashRepositioning = false;
+    }
+
+    private void CheckDashContactDamage(Vector2 previousPosition, Vector2 nextPosition)
+    {
+        if (contactDamage == null)
+            return;
+
+        Vector2 travel = nextPosition - previousPosition;
+        float distance = travel.magnitude;
+
+        if (distance <= 0f)
+            return;
+
+        RaycastHit2D[] hits = Physics2D.CircleCastAll(
+            previousPosition,
+            dashDamageCheckRadius,
+            travel.normalized,
+            distance
+        );
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            PlayerHealth playerHealth = hits[i].collider.GetComponent<PlayerHealth>();
+            if (playerHealth == null)
+                continue;
+
+            contactDamage.TryDamagePlayer(playerHealth);
+        }
     }
 
     private IEnumerator OrbitPatternSequence()
@@ -230,22 +327,27 @@ public class ProjectileChargerEnemy : MonoBehaviour
         currentVelocity = Vector2.zero;
 
         Vector2 topOffset = Vector2.up * circleRadius;
+        Vector2 startPosition = transform.position;
 
-        while (player != null)
+        float approachElapsed = 0f;
+
+        while (approachElapsed < orbitApproachDuration)
         {
-            Vector2 targetPosition = (Vector2)player.position + topOffset;
-            float distanceToTarget = Vector2.Distance(transform.position, targetPosition);
-
-            if (distanceToTarget <= targetReachDistance)
+            if (player == null)
                 break;
 
-            transform.position = Vector2.MoveTowards(
-                transform.position,
-                targetPosition,
-                orbitMoveSpeed * Time.deltaTime
-            );
+            Vector2 targetPosition = (Vector2)player.position + topOffset;
+            float t = Mathf.Clamp01(approachElapsed / orbitApproachDuration);
 
+            transform.position = Vector2.Lerp(startPosition, targetPosition, t);
+
+            approachElapsed += Time.deltaTime;
             yield return null;
+        }
+
+        if (player != null)
+        {
+            transform.position = (Vector2)player.position + topOffset;
         }
 
         float pauseElapsed = 0f;
@@ -285,7 +387,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
             if (projectileTimer >= orbitProjectileInterval)
             {
                 projectileTimer = 0f;
-                FireProjectileAtPlayer();
+                FireOrbitProjectilePattern();
             }
 
             orbitElapsed += Time.deltaTime;
@@ -298,22 +400,58 @@ public class ProjectileChargerEnemy : MonoBehaviour
         }
 
         completedDashCount = 0;
+        dashTimer = dashInterval;
+
+        useFastOrbitVariant = !useFastOrbitVariant;
+
         PickRandomCircleTarget();
 
         currentPattern = AttackPattern.DashPattern;
         isOrbitPatternRunning = false;
+        canDash = true;
     }
 
     private void FireDashProjectiles()
     {
-        if (projectilePrefab == null || projectileSpawnPoint == null)
+        if (dashProjectilePrefab == null || projectileSpawnPoint == null)
             return;
 
         Vector2 upperDirection = RotateVector(dashDirection, projectileSpreadAngle);
         Vector2 lowerDirection = RotateVector(dashDirection, -projectileSpreadAngle);
 
-        SpawnProjectile(upperDirection);
-        SpawnProjectile(lowerDirection);
+        SpawnProjectile(dashProjectilePrefab, upperDirection);
+        SpawnProjectile(dashProjectilePrefab, lowerDirection);
+    }
+
+    private void FireOrbitProjectilePattern()
+    {
+        if (useFastOrbitVariant)
+        {
+            FireFastOrbitProjectilesAtPlayer();
+        }
+        else
+        {
+            FireProjectileAtPlayer();
+        }
+    }
+
+    private void FireFastOrbitProjectilesAtPlayer()
+    {
+        if (dashProjectilePrefab == null || projectileSpawnPoint == null || player == null)
+            return;
+
+        Vector2 direction = ((Vector2)player.position - (Vector2)projectileSpawnPoint.position).normalized;
+
+        if (direction.sqrMagnitude < 0.0001f)
+        {
+            direction = Vector2.right;
+        }
+
+        Vector2 upperDirection = RotateVector(direction, projectileSpreadAngle);
+        Vector2 lowerDirection = RotateVector(direction, -projectileSpreadAngle);
+
+        SpawnProjectile(dashProjectilePrefab, upperDirection);
+        SpawnProjectile(dashProjectilePrefab, lowerDirection);
     }
 
     private void FireProjectileAtPlayer()
@@ -328,7 +466,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
             direction = Vector2.right;
         }
 
-        SpawnProjectile(direction);
+        SpawnProjectile(projectilePrefab, direction);
     }
 
     private Vector2 RotateVector(Vector2 direction, float degrees)
@@ -344,10 +482,10 @@ public class ProjectileChargerEnemy : MonoBehaviour
         ).normalized;
     }
 
-    private void SpawnProjectile(Vector2 direction)
+    private void SpawnProjectile(GameObject prefabToSpawn, Vector2 direction)
     {
         GameObject projectileObject = Instantiate(
-            projectilePrefab,
+            prefabToSpawn,
             projectileSpawnPoint.position,
             Quaternion.identity
         );
@@ -381,14 +519,14 @@ public class ProjectileChargerEnemy : MonoBehaviour
         Gizmos.color = Color.white;
         Gizmos.DrawLine(transform.position, currentTarget);
 
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(currentTarget, targetReachDistance);
-
         Vector2 topPoint = circleCenter + Vector2.up * circleRadius;
 
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(topPoint, 0.3f);
         Gizmos.DrawLine(transform.position, topPoint);
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, dashDamageCheckRadius);
 
         if (projectileSpawnPoint != null)
         {

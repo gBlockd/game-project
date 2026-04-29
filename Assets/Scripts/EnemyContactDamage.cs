@@ -2,6 +2,9 @@ using UnityEngine;
 
 /// <summary>
 /// Damages the player when this enemy's trigger collider overlaps them.
+/// 
+/// Some enemies, such as ProjectileChargerEnemy, only allow contact damage
+/// during specific attack windows.
 /// </summary>
 public class EnemyContactDamage : MonoBehaviour
 {
@@ -19,6 +22,14 @@ public class EnemyContactDamage : MonoBehaviour
 
         ProjectileChargerEnemy projectileCharger = GetComponentInParent<ProjectileChargerEnemy>();
         if (projectileCharger != null && !projectileCharger.CanDealContactDamage)
+            return;
+
+        TryDamagePlayer(playerHealth);
+    }
+
+    public void TryDamagePlayer(PlayerHealth playerHealth)
+    {
+        if (playerHealth == null)
             return;
 
         if (Time.time < lastDamageTime + damageCooldown)

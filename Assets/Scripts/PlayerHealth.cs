@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 /// <summary>
 /// Handles health logic for the player and syncs it with persistent game state.
@@ -8,8 +9,12 @@ public class PlayerHealth : MonoBehaviour
     [Header("Health")]
     public int maxHealth = 100;
 
+    [Header("I-Frames")]
+    public float invincibilityDuration = 0.5f;
+
     private int currentHealth;
     private bool isDead;
+    private bool isInvincible;
 
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
@@ -34,7 +39,7 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
-        if (isDead)
+        if (isDead || isInvincible)
             return;
 
         currentHealth -= amount;
@@ -46,6 +51,8 @@ public class PlayerHealth : MonoBehaviour
         {
             damageFlash.Flash();
         }
+
+        StartCoroutine(InvincibilityRoutine());
 
         if (currentHealth <= 0)
         {
@@ -75,6 +82,15 @@ public class PlayerHealth : MonoBehaviour
         isDead = false;
 
         SyncHealthToGameState();
+    }
+
+    private IEnumerator InvincibilityRoutine()
+    {
+        isInvincible = true;
+
+        yield return new WaitForSeconds(invincibilityDuration);
+
+        isInvincible = false;
     }
 
     private void SyncHealthToGameState()
