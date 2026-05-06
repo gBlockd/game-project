@@ -9,7 +9,7 @@ using UnityEngine;
 /// - Moves toward that point using acceleration/deceleration.
 /// - Dashes on a fixed timer, regardless of distance from the target point.
 /// - Before dashing, pauses and locks onto the player's current position.
-/// - Fires two spread projectiles, then dashes toward the locked player position.
+/// - Fires two shifting projectiles, then dashes toward the locked player position.
 /// - After dashing, quickly repositions toward its current target point for a short period.
 /// - After four dashes, switches to Pattern 2.
 ///
@@ -70,6 +70,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
     [Header("Projectiles")]
     public GameObject projectilePrefab;
     public GameObject dashProjectilePrefab;
+    public GameObject shiftingProjectilePrefab;
     public Transform projectileSpawnPoint;
     public float projectileSpreadAngle = 20f;
 
@@ -413,14 +414,14 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
     private void FireDashProjectiles()
     {
-        if (dashProjectilePrefab == null || projectileSpawnPoint == null)
+        if (shiftingProjectilePrefab == null || projectileSpawnPoint == null)
             return;
 
         Vector2 upperDirection = RotateVector(dashDirection, projectileSpreadAngle);
         Vector2 lowerDirection = RotateVector(dashDirection, -projectileSpreadAngle);
 
-        SpawnProjectile(dashProjectilePrefab, upperDirection);
-        SpawnProjectile(dashProjectilePrefab, lowerDirection);
+        SpawnProjectile(shiftingProjectilePrefab, upperDirection);
+        SpawnProjectile(shiftingProjectilePrefab, lowerDirection);
     }
 
     private void FireOrbitProjectilePattern()
@@ -490,10 +491,17 @@ public class ProjectileChargerEnemy : MonoBehaviour
             Quaternion.identity
         );
 
-        EnemyProjectile projectile = projectileObject.GetComponent<EnemyProjectile>();
-        if (projectile != null)
+        EnemyProjectile regularProjectile = projectileObject.GetComponent<EnemyProjectile>();
+        if (regularProjectile != null)
         {
-            projectile.Initialize(direction);
+            regularProjectile.Initialize(direction);
+            return;
+        }
+
+        EnemySpeedShiftProjectile shiftingProjectile = projectileObject.GetComponent<EnemySpeedShiftProjectile>();
+        if (shiftingProjectile != null)
+        {
+            shiftingProjectile.Initialize(direction);
         }
     }
 

@@ -151,6 +151,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimpleChaseEnemy
   activationRange: 10
+  activationBurstAngleDegrees: 0
+  activationBurstSpeed: 10
+  activationBurstDeceleration: 25
+  aiStartDelay: 0.25
   player: {fileID: 0}
   sideOffset: 4
   moveSpeed: 10

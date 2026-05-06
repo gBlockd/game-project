@@ -48,7 +48,7 @@ GameObject:
   - component: {fileID: 8675477071829844178}
   - component: {fileID: 8803989285614154937}
   m_Layer: 0
-  m_Name: Projectile Charger
+  m_Name: (Miniboss) Ranged Charger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -264,5 +264,6 @@ MonoBehaviour:
   orbitProjectileInterval: 0.2
   projectilePrefab: {fileID: 5089571314493488957, guid: 0e6f6107ed0957b428a9161e815e7d7c, type: 3}
   dashProjectilePrefab: {fileID: 7484294151288692102, guid: 234ef066acc5763458bcc6b628852597, type: 3}
+  shiftingProjectilePrefab: {fileID: 5089571314493488957, guid: f78ab31abdf3fa048acf7a5f55660afc, type: 3}
   projectileSpawnPoint: {fileID: 6600149946732184350}
   projectileSpreadAngle: 20

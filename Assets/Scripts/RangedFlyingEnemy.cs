@@ -6,12 +6,13 @@ using UnityEngine;
 ///
 /// Behavior:
 /// - Starts idle until the player enters activation range.
+/// - When activated, bursts in a manually configured direction.
 /// - Once active, moves toward a single hover point above the player.
 /// - The hover point's horizontal offset is randomly re-rolled every 2 seconds.
 /// - Uses acceleration/deceleration so movement has some weight.
 /// - When within attack range of the player, pauses and fires a projectile toward the player's current position.
 /// - After firing, resumes chase behavior.
-/// - Can be temporarily frozen by knockback, unless currently preparing or firing.
+/// - Can be temporarily frozen by knockback, unless currently preparing, firing, or activation bursting.
 /// 
 /// This enemy ignores physics and collision and moves by directly changing
 /// its transform position.
@@ -20,6 +21,12 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
 {
     [Header("Activation")]
     public float activationRange = 10f;
+
+    [Header("Activation Burst")]
+    public float activationBurstAngleDegrees = 0f;
+    public float activationBurstSpeed = 10f;
+    public float activationBurstDeceleration = 25f;
+    public float aiStartDelay = 0.15f;
 
     [Header("Target")]
     public Transform player;
@@ -42,16 +49,22 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
     public Transform projectileSpawnPoint;
 
     private bool isActive;
+    private bool aiLoopEnabled;
+    private bool isActivationBursting;
     private bool isPreparingAttack;
     private bool isAttacking;
     private bool isFrozen;
     private bool canAttack = true;
 
+    private float aiStartTimer;
     private float currentSideOffset;
+
     private Vector2 currentVelocity;
+    private Vector2 activationBurstVelocity;
+
     private Coroutine targetSwitchCoroutine;
 
-    public bool CanReceiveKnockback => !isPreparingAttack && !isAttacking && !isFrozen;
+    public bool CanReceiveKnockback => !isActivationBursting && !isPreparingAttack && !isAttacking && !isFrozen;
     public Vector2 CurrentVelocity => currentVelocity;
 
     private void Update()
@@ -65,7 +78,15 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
             return;
         }
 
-        if (isFrozen || isPreparingAttack || isAttacking)
+        if (isFrozen)
+            return;
+
+        HandleActivationBurst();
+
+        if (!aiLoopEnabled)
+            return;
+
+        if (isPreparingAttack || isAttacking)
             return;
 
         TryStartAttack();
@@ -83,6 +104,12 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
         if (distanceToPlayer <= activationRange)
         {
             isActive = true;
+            aiLoopEnabled = false;
+            isActivationBursting = true;
+            aiStartTimer = aiStartDelay;
+
+            activationBurstVelocity = GetDirectionFromAngle(activationBurstAngleDegrees) * activationBurstSpeed;
+
             PickRandomSideOffset();
 
             if (targetSwitchCoroutine == null)
@@ -90,6 +117,46 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
                 targetSwitchCoroutine = StartCoroutine(TargetSwitchRoutine());
             }
         }
+    }
+
+    private void HandleActivationBurst()
+    {
+        if (aiStartTimer > 0f)
+        {
+            aiStartTimer -= Time.deltaTime;
+
+            if (aiStartTimer <= 0f)
+            {
+                aiLoopEnabled = true;
+            }
+        }
+
+        if (!isActivationBursting)
+            return;
+
+        transform.position += (Vector3)(activationBurstVelocity * Time.deltaTime);
+
+        activationBurstVelocity = Vector2.MoveTowards(
+            activationBurstVelocity,
+            Vector2.zero,
+            activationBurstDeceleration * Time.deltaTime
+        );
+
+        if (activationBurstVelocity.sqrMagnitude < 0.001f)
+        {
+            activationBurstVelocity = Vector2.zero;
+            isActivationBursting = false;
+        }
+    }
+
+    private Vector2 GetDirectionFromAngle(float angleDegrees)
+    {
+        float radians = angleDegrees * Mathf.Deg2Rad;
+
+        return new Vector2(
+            Mathf.Cos(radians),
+            Mathf.Sin(radians)
+        ).normalized;
     }
 
     private void HandleChaseMovement()
@@ -192,6 +259,8 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
     {
         isFrozen = true;
         currentVelocity = Vector2.zero;
+        activationBurstVelocity = Vector2.zero;
+        isActivationBursting = false;
     }
 
     public void UnfreezeMovement(Vector2 restoredVelocity)
@@ -207,23 +276,18 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
 
         Vector2 hoverTarget = (Vector2)player.position + new Vector2(currentSideOffset, heightOffset);
 
-        // Activation range
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, activationRange);
 
-        // Attack range
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, attackRange);
 
-        // Hover target point
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(hoverTarget, 0.2f);
 
-        // Line to hover target
         Gizmos.color = Color.white;
         Gizmos.DrawLine(transform.position, hoverTarget);
 
-        // Horizontal offset bounds (where the hover point can appear)
         Gizmos.color = Color.yellow;
 
         float leftBound = player.position.x + minSideOffset;
@@ -235,19 +299,21 @@ public class RangedFlyingEnemy : MonoBehaviour, IFlyingEnemyMovement
             new Vector3(rightBound, y, 0f)
         );
 
-        // Vertical guide (player to hover band)
         Gizmos.color = Color.red;
         Gizmos.DrawLine(
             new Vector3(player.position.x, player.position.y, 0f),
             new Vector3(player.position.x, y, 0f)
         );
 
-        // Projectile direction preview
         if (projectileSpawnPoint != null)
         {
             Gizmos.color = Color.blue;
             Vector2 dir = ((Vector2)player.position - (Vector2)projectileSpawnPoint.position).normalized;
             Gizmos.DrawLine(projectileSpawnPoint.position, projectileSpawnPoint.position + (Vector3)(dir * 1.5f));
         }
+
+        Gizmos.color = Color.magenta;
+        Vector2 burstDirection = GetDirectionFromAngle(activationBurstAngleDegrees);
+        Gizmos.DrawLine(transform.position, transform.position + (Vector3)(burstDirection * 1.5f));
     }
 }

@@ -3,16 +3,6 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// Handles the player's core movement systems.
-/// 
-/// Responsibilities:
-/// - horizontal ground/air movement,
-/// - jump with variable jump height,
-/// - flight with limited duration,
-/// - glide behavior when flight is depleted,
-/// - dive behavior while descending,
-/// - fall gravity tuning and fall speed limits,
-/// - dash behavior toward the mouse cursor,
-/// - ground detection and flight/dash refills.
 /// </summary>
 public class PlayerMovement : MonoBehaviour
 {
@@ -35,7 +25,13 @@ public class PlayerMovement : MonoBehaviour
     [Header("Ground Check")]
     public Collider2D bodyCollider;
     public float groundCheckDistance = 0.08f;
+    public float groundCheckHeight = 0.06f;
+    [Range(0.1f, 1f)] public float groundCheckWidthMultiplier = 0.9f;
     public LayerMask groundLayer;
+
+    [Header("Wall Check")]
+    public float wallCheckDistance = 0.08f;
+    [Range(0.1f, 1f)] public float wallCheckHeightMultiplier = 0.8f;
 
     [Header("Fall Settings")]
     public float maxFallSpeed = -12f;
@@ -51,11 +47,9 @@ public class PlayerMovement : MonoBehaviour
     public int maxDashCharges = 3;
     public float dashCooldown = 0.5f;
 
-    // Core component references.
     private Rigidbody2D rb;
     private Camera mainCamera;
 
-    // Input state.
     private float horizontalInput;
     private bool jumpPressed;
     private bool flyHeld;
@@ -63,33 +57,24 @@ public class PlayerMovement : MonoBehaviour
     private bool dashPressed;
     private bool isInFlightMode;
 
-    // Horizontal movement state.
     private float currentHorizontalSpeed;
-
-    // Flight state.
     private float currentFlightTime;
 
-    // Ground state.
     private bool isGrounded;
     private bool wasGrounded;
 
-    // Jump state.
     private bool hasStartedJump;
     private float coyoteTimeCounter;
 
-    // Glide state.
     private bool wasGliding;
 
-    // Dash state.
     private bool isDashing;
     private bool canDash = true;
     private int currentDashCharges;
     private Vector2 dashDirection;
 
-    // Cached gravity value used when temporarily overriding gravity during dash.
     private float normalGravityScale;
 
-    // Public read-only accessors for UI and other systems.
     public float CurrentFlightTime => currentFlightTime;
     public float MaxFlightTime => maxFlightTime;
 
@@ -109,6 +94,7 @@ public class PlayerMovement : MonoBehaviour
         mainCamera = Camera.main;
         normalGravityScale = rb.gravityScale;
         lastGroundedPosition = transform.position;
+
         if (bodyCollider == null)
         {
             bodyCollider = GetComponent<Collider2D>();
@@ -139,10 +125,6 @@ public class PlayerMovement : MonoBehaviour
         }
         else if (context.canceled)
         {
-
-            // Variable jump height:
-            // if the button is released while still rising from a jump,
-            // reduce upward velocity so the jump ends earlier.
             if (hasStartedJump && rb.linearVelocity.y > 0f)
             {
                 rb.linearVelocity = new Vector2(
@@ -174,15 +156,7 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         wasGrounded = isGrounded;
-
-        isGrounded = Physics2D.BoxCast(
-            bodyCollider.bounds.center,
-            bodyCollider.bounds.size,
-            0f,
-            Vector2.down,
-            groundCheckDistance,
-            groundLayer
-        );
+        isGrounded = CheckGrounded();
 
         if (isGrounded)
         {
@@ -196,17 +170,12 @@ public class PlayerMovement : MonoBehaviour
             coyoteTimeCounter -= Time.deltaTime;
         }
 
-        // When the player first leaves the ground, choose the nearest
-        // manually placed hazard recovery point.
-
-        // Refill flight and dash charges instantly on landing.
         if (isGrounded && !wasGrounded)
         {
             currentFlightTime = maxFlightTime;
             currentDashCharges = maxDashCharges;
         }
 
-        // Start dash if requested and available.
         if (dashPressed && canDash && currentDashCharges > 0 && !isDashing)
         {
             dashPressed = false;
@@ -216,6 +185,60 @@ public class PlayerMovement : MonoBehaviour
         {
             dashPressed = false;
         }
+    }
+
+    private bool CheckGrounded()
+    {
+        if (bodyCollider == null)
+            return false;
+
+        Bounds bounds = bodyCollider.bounds;
+
+        Vector2 boxSize = new Vector2(
+            bounds.size.x * groundCheckWidthMultiplier,
+            groundCheckHeight
+        );
+
+        Vector2 boxCenter = new Vector2(
+            bounds.center.x,
+            bounds.min.y - groundCheckDistance
+        );
+
+        return Physics2D.OverlapBox(
+            boxCenter,
+            boxSize,
+            0f,
+            groundLayer
+        );
+    }
+
+    private bool CheckWall(int direction)
+    {
+        if (bodyCollider == null)
+            return false;
+
+        Bounds bounds = bodyCollider.bounds;
+
+        Vector2 boxSize = new Vector2(
+            wallCheckDistance,
+            bounds.size.y * wallCheckHeightMultiplier
+        );
+
+        float xPosition = direction > 0
+            ? bounds.max.x + wallCheckDistance * 0.5f
+            : bounds.min.x - wallCheckDistance * 0.5f;
+
+        Vector2 boxCenter = new Vector2(
+            xPosition,
+            bounds.center.y
+        );
+
+        return Physics2D.OverlapBox(
+            boxCenter,
+            boxSize,
+            0f,
+            groundLayer
+        );
     }
 
     private void FixedUpdate()
@@ -232,6 +255,17 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleHorizontalMovement()
     {
+        bool pressingLeftIntoWall = horizontalInput < 0f && CheckWall(-1);
+        bool pressingRightIntoWall = horizontalInput > 0f && CheckWall(1);
+        bool pressingIntoWall = pressingLeftIntoWall || pressingRightIntoWall;
+
+        if (pressingIntoWall)
+        {
+            currentHorizontalSpeed = 0f;
+            rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
+            return;
+        }
+
         if (isInFlightMode)
         {
             float targetSpeed = horizontalInput * moveSpeed * 2f;
@@ -255,7 +289,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleJump()
     {
-        // Flight takes priority over jump.
         if (!jumpPressed || flyHeld)
         {
             jumpPressed = false;
@@ -366,14 +399,46 @@ public class PlayerMovement : MonoBehaviour
         if (bodyCollider == null)
             return;
 
-        Gizmos.color = Color.yellow;
-
         Bounds bounds = bodyCollider.bounds;
 
-        Vector3 castCenter = bounds.center + Vector3.down * groundCheckDistance;
-        Vector3 castSize = bounds.size;
+        Gizmos.color = Color.yellow;
 
-        Gizmos.DrawWireCube(castCenter, castSize);
+        Vector3 groundBoxSize = new Vector3(
+            bounds.size.x * groundCheckWidthMultiplier,
+            groundCheckHeight,
+            0f
+        );
+
+        Vector3 groundBoxCenter = new Vector3(
+            bounds.center.x,
+            bounds.min.y - groundCheckDistance,
+            0f
+        );
+
+        Gizmos.DrawWireCube(groundBoxCenter, groundBoxSize);
+
+        Gizmos.color = Color.red;
+
+        Vector3 leftWallBoxSize = new Vector3(
+            wallCheckDistance,
+            bounds.size.y * wallCheckHeightMultiplier,
+            0f
+        );
+
+        Vector3 leftWallBoxCenter = new Vector3(
+            bounds.min.x - wallCheckDistance * 0.5f,
+            bounds.center.y,
+            0f
+        );
+
+        Vector3 rightWallBoxCenter = new Vector3(
+            bounds.max.x + wallCheckDistance * 0.5f,
+            bounds.center.y,
+            0f
+        );
+
+        Gizmos.DrawWireCube(leftWallBoxCenter, leftWallBoxSize);
+        Gizmos.DrawWireCube(rightWallBoxCenter, leftWallBoxSize);
     }
 
     private System.Collections.IEnumerator PerformDash()

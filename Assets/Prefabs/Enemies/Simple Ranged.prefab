@@ -257,6 +257,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RangedFlyingEnemy
   activationRange: 10
+  activationBurstAngleDegrees: 0
+  activationBurstSpeed: 10
+  activationBurstDeceleration: 25
+  aiStartDelay: 0.25
   player: {fileID: 0}
   heightOffset: 5
   minSideOffset: -5
