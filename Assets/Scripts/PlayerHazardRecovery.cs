@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
 /// - stores the current hazard recovery position,
 /// - allows recovery zones to update that position by ID,
 /// - applies hazard damage,
+/// - resets projectile charger enemies when recovery begins,
 /// - briefly freezes the player,
 /// - returns them to the selected hazard recovery point,
 /// - restores control afterward.
@@ -73,6 +74,8 @@ public class PlayerHazardRecovery : MonoBehaviour
     {
         isRecovering = true;
 
+        ResetProjectileChargers();
+
         Vector2 returnPosition = currentRecoveryPosition;
 
         playerHealth.TakeDamage(damage);
@@ -105,6 +108,16 @@ public class PlayerHazardRecovery : MonoBehaviour
         UnfreezePlayer();
 
         isRecovering = false;
+    }
+
+    private void ResetProjectileChargers()
+    {
+        ProjectileChargerEnemy[] projectileChargers = FindObjectsByType<ProjectileChargerEnemy>();
+
+        for (int i = 0; i < projectileChargers.Length; i++)
+        {
+            projectileChargers[i].ResetAttackLoop();
+        }
     }
 
     private void FreezePlayer()

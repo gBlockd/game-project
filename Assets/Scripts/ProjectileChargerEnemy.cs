@@ -92,6 +92,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
     private Vector2 currentVelocity;
 
     private EnemyContactDamage contactDamage;
+    private Coroutine activeBehaviorCoroutine;
 
     public bool CanDealContactDamage => isDashing;
 
@@ -115,7 +116,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
         {
             if (!isOrbitPatternRunning)
             {
-                StartCoroutine(OrbitPatternSequence());
+                activeBehaviorCoroutine = StartCoroutine(OrbitPatternSequence());
             }
 
             return;
@@ -126,6 +127,34 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         HandleChaseMovement();
         UpdateDashTimer();
+    }
+
+    public void ResetAttackLoop()
+    {
+        if (activeBehaviorCoroutine != null)
+        {
+            StopCoroutine(activeBehaviorCoroutine);
+            activeBehaviorCoroutine = null;
+        }
+
+        isPreparingDash = false;
+        isDashing = false;
+        isPostDashRepositioning = false;
+        isOrbitPatternRunning = false;
+        canDash = true;
+
+        completedDashCount = 0;
+        dashTimer = dashInterval;
+
+        currentPattern = AttackPattern.DashPattern;
+
+        currentVelocity = Vector2.zero;
+        dashDirection = Vector2.zero;
+
+        if (isActive)
+        {
+            PickRandomCircleTarget();
+        }
     }
 
     private void TryActivate()
@@ -195,7 +224,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         if (dashTimer <= 0f)
         {
-            StartCoroutine(DashSequence());
+            activeBehaviorCoroutine = StartCoroutine(DashSequence());
         }
     }
 
@@ -264,6 +293,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
             currentPattern = AttackPattern.OrbitPattern;
             dashTimer = dashInterval;
             canDash = true;
+            activeBehaviorCoroutine = null;
             yield break;
         }
 
@@ -273,6 +303,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         dashTimer = dashInterval;
         canDash = true;
+        activeBehaviorCoroutine = null;
     }
 
     private IEnumerator PostDashRepositionSequence()
@@ -410,6 +441,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
         currentPattern = AttackPattern.DashPattern;
         isOrbitPatternRunning = false;
         canDash = true;
+        activeBehaviorCoroutine = null;
     }
 
     private void FireDashProjectiles()

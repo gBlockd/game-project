@@ -254,7 +254,7 @@ MonoBehaviour:
   dashDuration: 0.2
   dashesBeforeOrbitPattern: 4
   postDashRepositionDuration: 1
-  postDashMoveSpeed: 16
+  postDashMoveSpeed: 30
   postDashAcceleration: 100
   postDashDeceleration: 100
   dashDamageCheckRadius: 0.5

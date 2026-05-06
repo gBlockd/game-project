@@ -11,6 +11,7 @@ using UnityEngine;
 /// - consumes enemy marks when present,
 /// - applies bonus damage for consuming a mark,
 /// - refreshes projectile cooldown when a marked enemy is hit by melee,
+/// - heals the player when a marked enemy is hit by melee,
 /// - activates checkpoints hit by the player's melee attack,
 /// - activates buttons hit by the player's melee attack.
 /// </summary>
@@ -19,6 +20,9 @@ public class AttackHitbox : MonoBehaviour
     [Header("Damage")]
     public int damage = 10;
     public int markedBonusDamage = 30;
+
+    [Header("Marked Hit Reward")]
+    public int markedHitHealing = 5;
 
     [Header("References")]
     public PlayerProjectileAttack playerProjectileAttack;
@@ -136,6 +140,12 @@ public class AttackHitbox : MonoBehaviour
             if (playerProjectileAttack != null)
             {
                 playerProjectileAttack.RefreshProjectileCooldown();
+            }
+
+            PlayerHealth playerHealth = GetComponentInParent<PlayerHealth>();
+            if (playerHealth != null)
+            {
+                playerHealth.Heal(markedHitHealing);
             }
         }
     }
