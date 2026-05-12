@@ -6,6 +6,7 @@ using UnityEngine;
 /// 
 /// Currently stores:
 /// - player health,
+/// - unlocked player abilities,
 /// - initial spawn scene and position,
 /// - active checkpoint scene and position,
 /// - activated buttons,
@@ -20,6 +21,10 @@ public class GameStateManager : MonoBehaviour
     public int currentHealth = 100;
     public int maxHealth = 100;
 
+    [Header("Unlocked Abilities")]
+    [SerializeField] private bool flightUnlocked;
+    [SerializeField] private bool dashUnlocked;
+
     private bool hasInitialSpawn;
     private string initialSpawnSceneName;
     private Vector3 initialSpawnPosition;
@@ -32,6 +37,9 @@ public class GameStateManager : MonoBehaviour
     private readonly HashSet<string> killedEnemyIds = new HashSet<string>();
 
     private readonly Dictionary<string, List<LockedDoor>> registeredDoors = new Dictionary<string, List<LockedDoor>>();
+
+    public bool HasFlightAbility => flightUnlocked;
+    public bool HasDashAbility => dashUnlocked;
 
     public bool HasInitialSpawn => hasInitialSpawn;
     public string InitialSpawnSceneName => initialSpawnSceneName;
@@ -63,6 +71,39 @@ public class GameStateManager : MonoBehaviour
     public void ResetHealthToFull()
     {
         currentHealth = maxHealth;
+    }
+
+    public void UnlockFlight()
+    {
+        flightUnlocked = true;
+    }
+
+    public void UnlockDash()
+    {
+        dashUnlocked = true;
+    }
+
+    public bool IsAbilityUnlocked(PlayerAbilityType abilityType)
+    {
+        if (abilityType == PlayerAbilityType.Flight)
+            return flightUnlocked;
+
+        if (abilityType == PlayerAbilityType.Dash)
+            return dashUnlocked;
+
+        return false;
+    }
+
+    public void UnlockAbility(PlayerAbilityType abilityType)
+    {
+        if (abilityType == PlayerAbilityType.Flight)
+        {
+            UnlockFlight();
+        }
+        else if (abilityType == PlayerAbilityType.Dash)
+        {
+            UnlockDash();
+        }
     }
 
     /// <summary>

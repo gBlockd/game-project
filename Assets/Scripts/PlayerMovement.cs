@@ -57,6 +57,9 @@ public class PlayerMovement : MonoBehaviour
     private bool dashPressed;
     private bool isInFlightMode;
 
+    private bool hasFlightAbility;
+    private bool hasDashAbility;
+
     private float currentHorizontalSpeed;
     private float currentFlightTime;
 
@@ -81,15 +84,15 @@ public class PlayerMovement : MonoBehaviour
     public int CurrentDashCharges => currentDashCharges;
     public int MaxDashCharges => maxDashCharges;
 
+    public bool HasFlightAbility => hasFlightAbility;
+    public bool HasDashAbility => hasDashAbility;
+
     private Vector2 lastGroundedPosition;
     public Vector2 LastGroundedPosition => lastGroundedPosition;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-
-        currentFlightTime = maxFlightTime;
-        currentDashCharges = maxDashCharges;
 
         mainCamera = Camera.main;
         normalGravityScale = rb.gravityScale;
@@ -98,6 +101,35 @@ public class PlayerMovement : MonoBehaviour
         if (bodyCollider == null)
         {
             bodyCollider = GetComponent<Collider2D>();
+        }
+
+        RefreshUnlockedAbilityState();
+    }
+
+    private void Start()
+    {
+        RefreshUnlockedAbilityState();
+    }
+
+    public void RefreshUnlockedAbilityState()
+    {
+        hasFlightAbility = GameStateManager.Instance != null && GameStateManager.Instance.HasFlightAbility;
+        hasDashAbility = GameStateManager.Instance != null && GameStateManager.Instance.HasDashAbility;
+
+        currentFlightTime = hasFlightAbility ? maxFlightTime : 0f;
+        currentDashCharges = hasDashAbility ? maxDashCharges : 0;
+
+        if (!hasFlightAbility)
+        {
+            flyHeld = false;
+            isInFlightMode = false;
+        }
+
+        if (!hasDashAbility)
+        {
+            dashPressed = false;
+            isDashing = false;
+            dashDirection = Vector2.zero;
         }
     }
 
@@ -137,7 +169,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void OnFly(InputAction.CallbackContext context)
     {
-        flyHeld = context.ReadValueAsButton();
+        flyHeld = hasFlightAbility && context.ReadValueAsButton();
     }
 
     public void OnDive(InputAction.CallbackContext context)
@@ -147,6 +179,9 @@ public class PlayerMovement : MonoBehaviour
 
     public void OnDash(InputAction.CallbackContext context)
     {
+        if (!hasDashAbility)
+            return;
+
         if (context.performed)
         {
             dashPressed = true;
@@ -172,11 +207,18 @@ public class PlayerMovement : MonoBehaviour
 
         if (isGrounded && !wasGrounded)
         {
-            currentFlightTime = maxFlightTime;
-            currentDashCharges = maxDashCharges;
+            if (hasFlightAbility)
+            {
+                currentFlightTime = maxFlightTime;
+            }
+
+            if (hasDashAbility)
+            {
+                currentDashCharges = maxDashCharges;
+            }
         }
 
-        if (dashPressed && canDash && currentDashCharges > 0 && !isDashing)
+        if (hasDashAbility && dashPressed && canDash && currentDashCharges > 0 && !isDashing)
         {
             dashPressed = false;
             StartCoroutine(PerformDash());
@@ -289,7 +331,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleJump()
     {
-        if (!jumpPressed || flyHeld)
+        bool flightTakesPriority = hasFlightAbility && flyHeld;
+
+        if (!jumpPressed || flightTakesPriority)
         {
             jumpPressed = false;
             return;
@@ -311,6 +355,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleFlight()
     {
+        if (!hasFlightAbility)
+            return;
+
         if (isGrounded)
         {
             if (flyHeld)
@@ -341,7 +388,7 @@ public class PlayerMovement : MonoBehaviour
         bool isFalling = rb.linearVelocity.y < 0f;
         bool isOutOfFlight = currentFlightTime <= 0f;
 
-        bool isGliding = !isGrounded && flyHeld && isFalling && isOutOfFlight;
+        bool isGliding = hasFlightAbility && !isGrounded && flyHeld && isFalling && isOutOfFlight;
         bool isDiving = !isGrounded && diveHeld && !flyHeld;
 
         if (wasGliding && !isGliding)
@@ -376,7 +423,7 @@ public class PlayerMovement : MonoBehaviour
         bool isFalling = rb.linearVelocity.y < 0f;
         bool isOutOfFlight = currentFlightTime <= 0f;
 
-        bool isGliding = !isGrounded && flyHeld && isFalling && isOutOfFlight;
+        bool isGliding = hasFlightAbility && !isGrounded && flyHeld && isFalling && isOutOfFlight;
         bool isDiving = !isGrounded && diveHeld && !flyHeld;
 
         if (isGliding)
@@ -443,7 +490,7 @@ public class PlayerMovement : MonoBehaviour
 
     private System.Collections.IEnumerator PerformDash()
     {
-        if (mainCamera == null || currentDashCharges <= 0 || !canDash)
+        if (!hasDashAbility || mainCamera == null || currentDashCharges <= 0 || !canDash)
             yield break;
 
         currentDashCharges--;
