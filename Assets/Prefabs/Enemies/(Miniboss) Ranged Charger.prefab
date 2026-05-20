@@ -253,6 +253,8 @@ MonoBehaviour:
   dashSpeed: 100
   dashDuration: 0.2
   dashesBeforeOrbitPattern: 4
+  telegraphLinePrefab: {fileID: 7121045054049187840, guid: 3d117913f125be2488c5c59fd4e70eaa, type: 3}
+  telegraphLineLength: 30
   postDashRepositionDuration: 1
   postDashMoveSpeed: 30
   postDashAcceleration: 100

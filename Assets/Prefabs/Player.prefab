@@ -48,6 +48,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AttackHitbox
   damage: 10
   markedBonusDamage: 10
+  markedHitHealing: 5
   playerProjectileAttack: {fileID: 7302288365732183627}
 --- !u!212 &4967264496592847740
 SpriteRenderer:
@@ -195,6 +196,7 @@ GameObject:
   - component: {fileID: 7302288365732183627}
   - component: {fileID: 973909806964752751}
   - component: {fileID: 7307025832559878854}
+  - component: {fileID: -1265555031157248700}
   m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
@@ -606,3 +608,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHazardRecovery
   recoveryPauseDuration: 1
+--- !u!114 &-1265555031157248700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3726930671731581257}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ae3eefc72fa80b4c9c04b17240e48d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerUpgradeFeedback
+  freezeDuration: 1.5
+  flashColor: {r: 0, g: 1, b: 0, a: 1}
+  flashCount: 3
+  flashInterval: 0.25

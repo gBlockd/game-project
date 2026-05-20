@@ -9,12 +9,15 @@ using UnityEngine;
 /// - Moves toward that point using acceleration/deceleration.
 /// - Dashes on a fixed timer, regardless of distance from the target point.
 /// - Before dashing, pauses and locks onto the player's current position.
+/// - Telegraphs the dash and projectile directions.
 /// - Fires two shifting projectiles, then dashes toward the locked player position.
 /// - After dashing, quickly repositions toward its current target point for a short period.
 /// - After four dashes, switches to Pattern 2.
 ///
 /// Pattern 2:
 /// - Rapidly moves to the top point of the circle.
+/// - Telegraphs the upcoming orbit projectile pattern while moving into position and pausing.
+/// - Orbit telegraphs stay attached to the enemy and track the player in real time.
 /// - Locks to that point for a pause.
 /// - Rotates once around the full circle over time, carrying the enemy with it.
 /// - Fires projectiles every set interval during the rotation.
@@ -51,6 +54,10 @@ public class ProjectileChargerEnemy : MonoBehaviour
     public float dashSpeed = 12f;
     public float dashDuration = 0.2f;
     public int dashesBeforeOrbitPattern = 4;
+
+    [Header("Dash Telegraph")]
+    public GameObject telegraphLinePrefab;
+    public float telegraphLineLength = 12f;
 
     [Header("Post-Dash Reposition")]
     public float postDashRepositionDuration = 1f;
@@ -260,6 +267,8 @@ public class ProjectileChargerEnemy : MonoBehaviour
             dashDirection = Vector2.right;
         }
 
+        ShowDashTelegraphs();
+
         yield return new WaitForSeconds(dashPauseDuration);
 
         FireDashProjectiles();
@@ -304,6 +313,79 @@ public class ProjectileChargerEnemy : MonoBehaviour
         dashTimer = dashInterval;
         canDash = true;
         activeBehaviorCoroutine = null;
+    }
+
+    private void ShowDashTelegraphs()
+    {
+        if (telegraphLinePrefab == null || projectileSpawnPoint == null)
+            return;
+
+        Vector2 startPosition = projectileSpawnPoint.position;
+        Vector2 upperDirection = RotateVector(dashDirection, projectileSpreadAngle);
+        Vector2 lowerDirection = RotateVector(dashDirection, -projectileSpreadAngle);
+
+        SpawnTelegraphLine(startPosition, dashDirection, dashPauseDuration);
+        SpawnTelegraphLine(startPosition, upperDirection, dashPauseDuration);
+        SpawnTelegraphLine(startPosition, lowerDirection, dashPauseDuration);
+    }
+
+    private void ShowOrbitTelegraphs()
+    {
+        if (telegraphLinePrefab == null || player == null)
+            return;
+
+        float telegraphDuration = orbitApproachDuration + orbitStartPauseDuration;
+
+        if (useFastOrbitVariant)
+        {
+            SpawnTrackingTelegraphLine(transform, player, telegraphDuration, projectileSpreadAngle);
+            SpawnTrackingTelegraphLine(transform, player, telegraphDuration, -projectileSpreadAngle);
+        }
+        else
+        {
+            SpawnTrackingTelegraphLine(transform, player, telegraphDuration, 0f);
+        }
+    }
+
+    private void SpawnTelegraphLine(Vector2 startPosition, Vector2 direction, float duration)
+    {
+        GameObject telegraphObject = Instantiate(
+            telegraphLinePrefab,
+            startPosition,
+            Quaternion.identity
+        );
+
+        AttackTelegraphLine telegraphLine = telegraphObject.GetComponent<AttackTelegraphLine>();
+        if (telegraphLine != null)
+        {
+            telegraphLine.Initialize(
+                startPosition,
+                direction,
+                telegraphLineLength,
+                duration
+            );
+        }
+    }
+
+    private void SpawnTrackingTelegraphLine(Transform origin, Transform target, float duration, float angleOffsetDegrees)
+    {
+        GameObject telegraphObject = Instantiate(
+            telegraphLinePrefab,
+            origin.position,
+            Quaternion.identity
+        );
+
+        AttackTelegraphLine telegraphLine = telegraphObject.GetComponent<AttackTelegraphLine>();
+        if (telegraphLine != null)
+        {
+            telegraphLine.InitializeTracking(
+                origin,
+                target,
+                telegraphLineLength,
+                duration,
+                angleOffsetDegrees
+            );
+        }
     }
 
     private IEnumerator PostDashRepositionSequence()
@@ -360,6 +442,8 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         Vector2 topOffset = Vector2.up * circleRadius;
         Vector2 startPosition = transform.position;
+
+        ShowOrbitTelegraphs();
 
         float approachElapsed = 0f;
 

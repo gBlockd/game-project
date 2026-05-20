@@ -9,6 +9,7 @@ using UnityEngine;
 /// - clamps health within valid bounds,
 /// - triggers visual feedback when damaged,
 /// - persists death across scene transitions when enemyId is set,
+/// - opens linked encounter doors when killed,
 /// - destroys the enemy when health reaches zero.
 /// </summary>
 public class EnemyHealth : MonoBehaviour
@@ -18,6 +19,9 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("Persistence")]
     public string enemyId;
+
+    [Header("Encounter Door")]
+    public string encounterDoorIdOnDeath;
 
     private int currentHealth;
 
@@ -69,6 +73,24 @@ public class EnemyHealth : MonoBehaviour
             GameStateManager.Instance.RegisterKilledEnemy(enemyId);
         }
 
+        OpenLinkedEncounterDoors();
+
         Destroy(gameObject);
+    }
+
+    private void OpenLinkedEncounterDoors()
+    {
+        if (string.IsNullOrWhiteSpace(encounterDoorIdOnDeath))
+            return;
+
+        EncounterDoor[] doors = FindObjectsByType<EncounterDoor>();
+
+        for (int i = 0; i < doors.Length; i++)
+        {
+            if (doors[i].encounterId == encounterDoorIdOnDeath)
+            {
+                doors[i].OpenDoor();
+            }
+        }
     }
 }
