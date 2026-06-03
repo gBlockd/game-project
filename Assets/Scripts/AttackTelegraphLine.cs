@@ -31,12 +31,19 @@ public class AttackTelegraphLine : MonoBehaviour
 
     public void Initialize(Vector2 startPosition, Vector2 direction, float length, float duration)
     {
+        Initialize(startPosition, direction, length, duration, Color.white, 0.08f);
+    }
+
+    public void Initialize(Vector2 startPosition, Vector2 direction, float length, float duration, Color color, float width)
+    {
         if (lineRenderer == null)
             return;
 
         isTracking = false;
 
         direction = direction.normalized;
+
+        ApplyVisuals(color, width);
 
         lineRenderer.positionCount = 2;
         lineRenderer.enabled = true;
@@ -49,6 +56,11 @@ public class AttackTelegraphLine : MonoBehaviour
 
     public void InitializeTracking(Transform origin, Transform target, float length, float duration, float angleOffsetDegrees)
     {
+        InitializeTracking(origin, target, length, duration, angleOffsetDegrees, Color.white, 0.08f);
+    }
+
+    public void InitializeTracking(Transform origin, Transform target, float length, float duration, float angleOffsetDegrees, Color color, float width)
+    {
         if (lineRenderer == null || origin == null || target == null)
             return;
 
@@ -58,10 +70,20 @@ public class AttackTelegraphLine : MonoBehaviour
         trackingAngleOffset = angleOffsetDegrees;
         isTracking = true;
 
+        ApplyVisuals(color, width);
+
         lineRenderer.positionCount = 2;
         lineRenderer.enabled = true;
 
         StartCoroutine(DestroyAfterDuration(duration));
+    }
+
+    private void ApplyVisuals(Color color, float width)
+    {
+        lineRenderer.startColor = color;
+        lineRenderer.endColor = color;
+        lineRenderer.startWidth = width;
+        lineRenderer.endWidth = width;
     }
 
     private void Update()

@@ -143,6 +143,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 250
   enemyId: 
+  encounterDoorIdOnDeath: 
 --- !u!114 &4655707702110991206
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -255,6 +256,10 @@ MonoBehaviour:
   dashesBeforeOrbitPattern: 4
   telegraphLinePrefab: {fileID: 7121045054049187840, guid: 3d117913f125be2488c5c59fd4e70eaa, type: 3}
   telegraphLineLength: 30
+  chargeTelegraphColor: {r: 1, g: 0, b: 0, a: 1}
+  projectileTelegraphColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  chargeTelegraphWidth: 0.5
+  projectileTelegraphWidth: 0.1
   postDashRepositionDuration: 1
   postDashMoveSpeed: 30
   postDashAcceleration: 100
@@ -264,6 +269,8 @@ MonoBehaviour:
   orbitStartPauseDuration: 1
   orbitDuration: 3
   orbitProjectileInterval: 0.2
+  orbitStartAngleDegrees: 90
+  orbitClockwise: 1
   projectilePrefab: {fileID: 5089571314493488957, guid: 0e6f6107ed0957b428a9161e815e7d7c, type: 3}
   dashProjectilePrefab: {fileID: 7484294151288692102, guid: 234ef066acc5763458bcc6b628852597, type: 3}
   shiftingProjectilePrefab: {fileID: 5089571314493488957, guid: f78ab31abdf3fa048acf7a5f55660afc, type: 3}

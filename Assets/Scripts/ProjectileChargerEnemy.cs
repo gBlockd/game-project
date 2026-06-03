@@ -15,7 +15,7 @@ using UnityEngine;
 /// - After four dashes, switches to Pattern 2.
 ///
 /// Pattern 2:
-/// - Rapidly moves to the top point of the circle.
+/// - Rapidly moves to a configurable start point on the circle.
 /// - Telegraphs the upcoming orbit projectile pattern while moving into position and pausing.
 /// - Orbit telegraphs stay attached to the enemy and track the player in real time.
 /// - Locks to that point for a pause.
@@ -58,6 +58,10 @@ public class ProjectileChargerEnemy : MonoBehaviour
     [Header("Dash Telegraph")]
     public GameObject telegraphLinePrefab;
     public float telegraphLineLength = 12f;
+    public Color chargeTelegraphColor = Color.red;
+    public Color projectileTelegraphColor = Color.yellow;
+    public float chargeTelegraphWidth = 0.14f;
+    public float projectileTelegraphWidth = 0.06f;
 
     [Header("Post-Dash Reposition")]
     public float postDashRepositionDuration = 1f;
@@ -73,6 +77,8 @@ public class ProjectileChargerEnemy : MonoBehaviour
     public float orbitStartPauseDuration = 1f;
     public float orbitDuration = 3f;
     public float orbitProjectileInterval = 0.5f;
+    public float orbitStartAngleDegrees = 90f;
+    public bool orbitClockwise = true;
 
     [Header("Projectiles")]
     public GameObject projectilePrefab;
@@ -164,6 +170,57 @@ public class ProjectileChargerEnemy : MonoBehaviour
         }
     }
 
+    public void ActivateExternally()
+    {
+        if (!isActive)
+        {
+            isActive = true;
+            dashTimer = dashInterval;
+            PickRandomCircleTarget();
+        }
+    }
+
+    public void SetCircleTargetOffset(Vector2 offset)
+    {
+        if (offset.sqrMagnitude < 0.0001f)
+            return;
+
+        currentTargetOffset = offset.normalized * circleRadius;
+    }
+
+    public void SetOrbitStartAngleDegrees(float angleDegrees)
+    {
+        orbitStartAngleDegrees = angleDegrees;
+    }
+
+    public void SetOrbitClockwise(bool clockwise)
+    {
+        orbitClockwise = clockwise;
+    }
+
+    public void ForceOrbitPattern()
+    {
+        if (activeBehaviorCoroutine != null)
+        {
+            StopCoroutine(activeBehaviorCoroutine);
+            activeBehaviorCoroutine = null;
+        }
+
+        isPreparingDash = false;
+        isDashing = false;
+        isPostDashRepositioning = false;
+        isOrbitPatternRunning = false;
+        canDash = true;
+
+        completedDashCount = dashesBeforeOrbitPattern;
+        dashTimer = dashInterval;
+
+        currentVelocity = Vector2.zero;
+        dashDirection = Vector2.zero;
+
+        currentPattern = AttackPattern.OrbitPattern;
+    }
+
     private void TryActivate()
     {
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
@@ -250,6 +307,16 @@ public class ProjectileChargerEnemy : MonoBehaviour
         ) * circleRadius;
     }
 
+    private Vector2 GetOrbitOffset(float angleDegrees)
+    {
+        float radians = angleDegrees * Mathf.Deg2Rad;
+
+        return new Vector2(
+            Mathf.Cos(radians),
+            Mathf.Sin(radians)
+        ) * circleRadius;
+    }
+
     private IEnumerator DashSequence()
     {
         canDash = false;
@@ -324,9 +391,29 @@ public class ProjectileChargerEnemy : MonoBehaviour
         Vector2 upperDirection = RotateVector(dashDirection, projectileSpreadAngle);
         Vector2 lowerDirection = RotateVector(dashDirection, -projectileSpreadAngle);
 
-        SpawnTelegraphLine(startPosition, dashDirection, dashPauseDuration);
-        SpawnTelegraphLine(startPosition, upperDirection, dashPauseDuration);
-        SpawnTelegraphLine(startPosition, lowerDirection, dashPauseDuration);
+        SpawnTelegraphLine(
+            startPosition,
+            dashDirection,
+            dashPauseDuration,
+            chargeTelegraphColor,
+            chargeTelegraphWidth
+        );
+
+        SpawnTelegraphLine(
+            startPosition,
+            upperDirection,
+            dashPauseDuration,
+            projectileTelegraphColor,
+            projectileTelegraphWidth
+        );
+
+        SpawnTelegraphLine(
+            startPosition,
+            lowerDirection,
+            dashPauseDuration,
+            projectileTelegraphColor,
+            projectileTelegraphWidth
+        );
     }
 
     private void ShowOrbitTelegraphs()
@@ -347,7 +434,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
         }
     }
 
-    private void SpawnTelegraphLine(Vector2 startPosition, Vector2 direction, float duration)
+    private void SpawnTelegraphLine(Vector2 startPosition, Vector2 direction, float duration, Color color, float width)
     {
         GameObject telegraphObject = Instantiate(
             telegraphLinePrefab,
@@ -362,7 +449,9 @@ public class ProjectileChargerEnemy : MonoBehaviour
                 startPosition,
                 direction,
                 telegraphLineLength,
-                duration
+                duration,
+                color,
+                width
             );
         }
     }
@@ -440,7 +529,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         currentVelocity = Vector2.zero;
 
-        Vector2 topOffset = Vector2.up * circleRadius;
+        Vector2 orbitStartOffset = GetOrbitOffset(orbitStartAngleDegrees);
         Vector2 startPosition = transform.position;
 
         ShowOrbitTelegraphs();
@@ -452,7 +541,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
             if (player == null)
                 break;
 
-            Vector2 targetPosition = (Vector2)player.position + topOffset;
+            Vector2 targetPosition = (Vector2)player.position + orbitStartOffset;
             float t = Mathf.Clamp01(approachElapsed / orbitApproachDuration);
 
             transform.position = Vector2.Lerp(startPosition, targetPosition, t);
@@ -463,7 +552,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         if (player != null)
         {
-            transform.position = (Vector2)player.position + topOffset;
+            transform.position = (Vector2)player.position + orbitStartOffset;
         }
 
         float pauseElapsed = 0f;
@@ -472,7 +561,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
         {
             if (player != null)
             {
-                transform.position = (Vector2)player.position + topOffset;
+                transform.position = (Vector2)player.position + orbitStartOffset;
             }
 
             pauseElapsed += Time.deltaTime;
@@ -488,14 +577,10 @@ public class ProjectileChargerEnemy : MonoBehaviour
                 break;
 
             float t = orbitElapsed / orbitDuration;
-            float angle = Mathf.Lerp(90f, 90f - 360f, t);
-            float radians = angle * Mathf.Deg2Rad;
+            float directionMultiplier = orbitClockwise ? -1f : 1f;
+            float angle = orbitStartAngleDegrees + directionMultiplier * 360f * t;
 
-            Vector2 orbitOffset = new Vector2(
-                Mathf.Cos(radians),
-                Mathf.Sin(radians)
-            ) * circleRadius;
-
+            Vector2 orbitOffset = GetOrbitOffset(angle);
             transform.position = (Vector2)player.position + orbitOffset;
 
             projectileTimer += Time.deltaTime;
@@ -512,7 +597,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         if (player != null)
         {
-            transform.position = (Vector2)player.position + topOffset;
+            transform.position = (Vector2)player.position + orbitStartOffset;
         }
 
         completedDashCount = 0;
@@ -643,11 +728,11 @@ public class ProjectileChargerEnemy : MonoBehaviour
         Gizmos.color = Color.white;
         Gizmos.DrawLine(transform.position, currentTarget);
 
-        Vector2 topPoint = circleCenter + Vector2.up * circleRadius;
+        Vector2 orbitStartPoint = circleCenter + GetOrbitOffset(orbitStartAngleDegrees);
 
         Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(topPoint, 0.3f);
-        Gizmos.DrawLine(transform.position, topPoint);
+        Gizmos.DrawWireSphere(orbitStartPoint, 0.3f);
+        Gizmos.DrawLine(transform.position, orbitStartPoint);
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, dashDamageCheckRadius);
