@@ -49,6 +49,10 @@ public class GameStateManager : MonoBehaviour
     public string CheckpointSceneName => checkpointSceneName;
     public Vector3 CheckpointPosition => checkpointPosition;
 
+    /// <summary>
+    /// Keeps one persistent game state object alive across scene loads.
+    /// Duplicate managers destroy themselves so state is not split between objects.
+    /// </summary>
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -62,27 +66,42 @@ public class GameStateManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    /// <summary>
+    /// Stores the player's current and maximum health, clamping current health into range.
+    /// </summary>
     public void SetHealth(int newCurrentHealth, int newMaxHealth)
     {
         maxHealth = newMaxHealth;
         currentHealth = Mathf.Clamp(newCurrentHealth, 0, maxHealth);
     }
 
+    /// <summary>
+    /// Restores the stored player health value to the current maximum.
+    /// </summary>
     public void ResetHealthToFull()
     {
         currentHealth = maxHealth;
     }
 
+    /// <summary>
+    /// Permanently unlocks the flight ability for the current run.
+    /// </summary>
     public void UnlockFlight()
     {
         flightUnlocked = true;
     }
 
+    /// <summary>
+    /// Permanently unlocks the dash ability for the current run.
+    /// </summary>
     public void UnlockDash()
     {
         dashUnlocked = true;
     }
 
+    /// <summary>
+    /// Checks whether a specific player ability has already been unlocked.
+    /// </summary>
     public bool IsAbilityUnlocked(PlayerAbilityType abilityType)
     {
         if (abilityType == PlayerAbilityType.Flight)
@@ -94,6 +113,9 @@ public class GameStateManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// Unlocks the requested ability type using the matching ability-specific method.
+    /// </summary>
     public void UnlockAbility(PlayerAbilityType abilityType)
     {
         if (abilityType == PlayerAbilityType.Flight)
@@ -122,6 +144,9 @@ public class GameStateManager : MonoBehaviour
         hasInitialSpawn = true;
     }
 
+    /// <summary>
+    /// Stores the latest checkpoint scene and position for future respawns.
+    /// </summary>
     public void SetCheckpoint(string sceneName, Vector3 respawnPosition)
     {
         if (string.IsNullOrWhiteSpace(sceneName))
@@ -132,6 +157,9 @@ public class GameStateManager : MonoBehaviour
         hasCheckpoint = true;
     }
 
+    /// <summary>
+    /// Marks a button as activated and opens any registered doors linked to that button ID.
+    /// </summary>
     public void SetButtonActivated(string buttonId)
     {
         if (string.IsNullOrWhiteSpace(buttonId))
@@ -144,6 +172,9 @@ public class GameStateManager : MonoBehaviour
         OpenRegisteredDoors(buttonId);
     }
 
+    /// <summary>
+    /// Checks whether a button ID has already been activated in this run.
+    /// </summary>
     public bool IsButtonActivated(string buttonId)
     {
         if (string.IsNullOrWhiteSpace(buttonId))
@@ -152,6 +183,9 @@ public class GameStateManager : MonoBehaviour
         return activatedButtons.Contains(buttonId);
     }
 
+    /// <summary>
+    /// Registers a locked door so it can be opened when its linked button activates.
+    /// </summary>
     public void RegisterDoor(LockedDoor door)
     {
         if (door == null || string.IsNullOrWhiteSpace(door.buttonId))
@@ -168,6 +202,10 @@ public class GameStateManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Updates every registered door linked to a newly activated button.
+    /// Null entries are removed because doors can disappear during scene changes.
+    /// </summary>
     private void OpenRegisteredDoors(string buttonId)
     {
         if (!registeredDoors.TryGetValue(buttonId, out List<LockedDoor> doors))
@@ -185,6 +223,9 @@ public class GameStateManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Records an enemy ID as killed so it can stay gone until enemy state is cleared.
+    /// </summary>
     public void RegisterKilledEnemy(string enemyId)
     {
         if (string.IsNullOrWhiteSpace(enemyId))
@@ -193,6 +234,9 @@ public class GameStateManager : MonoBehaviour
         killedEnemyIds.Add(enemyId);
     }
 
+    /// <summary>
+    /// Checks whether an enemy ID has already been killed.
+    /// </summary>
     public bool IsEnemyKilled(string enemyId)
     {
         if (string.IsNullOrWhiteSpace(enemyId))
@@ -201,6 +245,9 @@ public class GameStateManager : MonoBehaviour
         return killedEnemyIds.Contains(enemyId);
     }
 
+    /// <summary>
+    /// Clears temporary enemy-death state, allowing enemies to respawn after player death.
+    /// </summary>
     public void ClearKilledEnemies()
     {
         killedEnemyIds.Clear();

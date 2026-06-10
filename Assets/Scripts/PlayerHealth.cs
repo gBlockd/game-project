@@ -3,6 +3,14 @@ using System.Collections;
 
 /// <summary>
 /// Handles health logic for the player and syncs it with persistent game state.
+///
+/// Responsibilities:
+/// - initializes health from GameStateManager when available,
+/// - applies damage and healing,
+/// - prevents repeated damage during invincibility frames,
+/// - triggers player damage feedback,
+/// - starts the respawn flow when health reaches zero,
+/// - writes health changes back to GameStateManager.
 /// </summary>
 public class PlayerHealth : MonoBehaviour
 {
@@ -22,6 +30,9 @@ public class PlayerHealth : MonoBehaviour
 
     private PlayerDamageFlash damageFlash;
 
+    /// <summary>
+    /// Loads health from persistent game state when possible; otherwise starts at full health.
+    /// </summary>
     private void Awake()
     {
         damageFlash = GetComponent<PlayerDamageFlash>();
@@ -37,6 +48,13 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Applies damage if the player is alive and not currently invincible.
+    ///
+    /// Damage is clamped at zero, synced to persistent state, and can start the
+    /// respawn flow if health reaches zero.
+    /// </summary>
+    /// <param name="amount">Amount of damage to apply.</param>
     public void TakeDamage(int amount)
     {
         if (isDead || isInvincible)
@@ -65,6 +83,10 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Restores health while the player is alive, clamping at max health.
+    /// </summary>
+    /// <param name="amount">Amount of health to restore.</param>
     public void Heal(int amount)
     {
         if (isDead)
@@ -76,6 +98,9 @@ public class PlayerHealth : MonoBehaviour
         SyncHealthToGameState();
     }
 
+    /// <summary>
+    /// Fully restores health and clears the dead state after respawn or checkpoint activation.
+    /// </summary>
     public void ResetToFullHealth()
     {
         currentHealth = maxHealth;
@@ -84,6 +109,9 @@ public class PlayerHealth : MonoBehaviour
         SyncHealthToGameState();
     }
 
+    /// <summary>
+    /// Temporarily blocks additional damage after the player is hit.
+    /// </summary>
     private IEnumerator InvincibilityRoutine()
     {
         isInvincible = true;
@@ -93,6 +121,9 @@ public class PlayerHealth : MonoBehaviour
         isInvincible = false;
     }
 
+    /// <summary>
+    /// Copies the local health values into GameStateManager when persistent state exists.
+    /// </summary>
     private void SyncHealthToGameState()
     {
         if (GameStateManager.Instance != null)

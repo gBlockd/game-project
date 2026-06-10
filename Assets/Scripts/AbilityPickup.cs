@@ -18,6 +18,9 @@ public class AbilityPickup : MonoBehaviour
     [Header("Pickup")]
     public string pickupId;
 
+    /// <summary>
+    /// Removes the pickup from the scene if this ability has already been collected.
+    /// </summary>
     private void Start()
     {
         if (GameStateManager.Instance != null && GameStateManager.Instance.IsAbilityUnlocked(abilityType))
@@ -26,6 +29,13 @@ public class AbilityPickup : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Unlocks the configured ability when the player touches the pickup.
+    ///
+    /// The player movement script is refreshed immediately so the new ability can
+    /// be used without reloading the scene. Upgrade feedback plays when available.
+    /// </summary>
+    /// <param name="other">The collider that entered this pickup trigger.</param>
     private void OnTriggerEnter2D(Collider2D other)
     {
         PlayerMovement playerMovement = other.GetComponent<PlayerMovement>();
