@@ -8,7 +8,7 @@ using UnityEngine;
 /// - immediately decelerates,
 /// - after a delay, accelerates again,
 /// - damages the player on contact,
-/// - destroys itself on ground contact or after its lifetime expires.
+/// - destroys itself after hitting the player or after its lifetime expires.
 /// </summary>
 public class EnemySpeedShiftProjectile : MonoBehaviour
 {
@@ -23,10 +23,20 @@ public class EnemySpeedShiftProjectile : MonoBehaviour
     public float accelerationRate = 30f;
     public float maxSpeed = 24f;
 
+    // Normalized movement direction assigned when the projectile is spawned.
     private Vector2 moveDirection;
+
+    // Current speed after deceleration and acceleration have been applied.
     private float currentSpeed;
+
+    // Time since the projectile became active, used to choose deceleration or acceleration.
     private float elapsedTime;
 
+    /// <summary>
+    /// Sets the projectile's travel direction, starting speed, and facing angle.
+    /// A rightward fallback is used if the provided direction is too close to zero.
+    /// </summary>
+    /// <param name="direction">Direction the projectile should travel.</param>
     public void Initialize(Vector2 direction)
     {
         moveDirection = direction.normalized;
@@ -42,12 +52,18 @@ public class EnemySpeedShiftProjectile : MonoBehaviour
         transform.rotation = Quaternion.Euler(0f, 0f, angle);
     }
 
+    /// <summary>
+    /// Starts the projectile's self-destruct timer.
+    /// </summary>
     private void Start()
     {
         currentSpeed = initialSpeed;
         Destroy(gameObject, lifetime);
     }
 
+    /// <summary>
+    /// Applies the speed-shift curve and moves the projectile each frame.
+    /// </summary>
     private void Update()
     {
         elapsedTime += Time.deltaTime;
@@ -66,6 +82,10 @@ public class EnemySpeedShiftProjectile : MonoBehaviour
         transform.position += (Vector3)(moveDirection * currentSpeed * Time.deltaTime);
     }
 
+    /// <summary>
+    /// Damages the player and removes the projectile when it overlaps the player.
+    /// </summary>
+    /// <param name="other">The collider this projectile entered.</param>
     private void OnTriggerEnter2D(Collider2D other)
     {
         PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
