@@ -8,6 +8,7 @@ using UnityEngine;
 /// - destroys the projectile after a limited lifetime,
 /// - destroys the projectile on contact with ground,
 /// - damages enemies on contact,
+/// - grants projectile-hit energy on enemy hit,
 /// - applies a temporary mark to enemies on hit,
 /// - destroys itself after a successful enemy hit.
 /// </summary>
@@ -21,15 +22,18 @@ public class Projectile : MonoBehaviour
 
     // Normalized movement direction assigned when the projectile is spawned.
     private Vector2 moveDirection;
+    private PlayerEnergy ownerEnergy;
 
     /// <summary>
     /// Initializes the projectile's movement direction and facing angle.
     /// This should be called immediately after the projectile is spawned.
     /// </summary>
     /// <param name="direction">The direction the projectile should travel in.</param>
-    public void Initialize(Vector2 direction)
+    /// <param name="sourceEnergy">The firing player's energy system.</param>
+    public void Initialize(Vector2 direction, PlayerEnergy sourceEnergy = null)
     {
         moveDirection = direction.normalized;
+        ownerEnergy = sourceEnergy;
 
         float angle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0f, 0f, angle);
@@ -60,6 +64,7 @@ public class Projectile : MonoBehaviour
     /// 
     /// Enemy:
     /// - applies damage,
+    /// - grants projectile-hit energy,
     /// - applies a mark if the enemy supports it,
     /// - destroys the projectile.
     /// </summary>
@@ -76,6 +81,11 @@ public class Projectile : MonoBehaviour
         if (enemyHealth != null)
         {
             enemyHealth.TakeDamage(damage);
+
+            if (ownerEnergy != null)
+            {
+                ownerEnergy.AddEnergy(ownerEnergy.projectileHitEnergy);
+            }
 
             EnemyMark enemyMark = other.GetComponent<EnemyMark>();
             if (enemyMark != null)
