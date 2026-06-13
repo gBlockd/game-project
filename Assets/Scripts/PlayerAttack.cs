@@ -3,18 +3,27 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Handles the player's melee attack input and attack execution.
+/// Handles the player's attack input and attack execution.
 /// 
 /// Responsibilities:
 /// - receives attack input from the Input System,
+/// - switches between close-range melee and ranged melee modes,
 /// - determines attack direction based on mouse position,
-/// - positions and rotates the attack hitbox,
-/// - activates the hitbox briefly,
+/// - positions and rotates the close-range attack hitbox,
 /// - fires a short-lived ranged melee hitbox,
 /// - enforces attack cooldown timing.
 /// </summary>
 public class PlayerAttack : MonoBehaviour
 {
+    public enum AttackMode
+    {
+        CloseMelee,
+        RangedMelee
+    }
+
+    [Header("Attack Mode")]
+    public AttackMode currentAttackMode = AttackMode.CloseMelee;
+
     [Header("Attack")]
     public GameObject attackHitboxObject;
     public float attackRange = 1.2f;
@@ -60,10 +69,10 @@ public class PlayerAttack : MonoBehaviour
     }
 
     /// <summary>
-    /// Input System callback for melee attack input.
-    /// 
-    /// When the attack action is performed, this sets a request flag
-    /// that is consumed during Update().
+    /// Input System callback for the primary attack input.
+    ///
+    /// The active attack mode decides whether this input performs close-range
+    /// melee or the ranged melee projectile attack.
     /// </summary>
     /// <param name="context">Input callback context from the new Input System.</param>
     public void OnAttack(InputAction.CallbackContext context)
@@ -75,10 +84,40 @@ public class PlayerAttack : MonoBehaviour
     }
 
     /// <summary>
-    /// Input System callback for the test ranged melee action.
+    /// Input System callback for toggling between close-range and ranged melee modes.
+    /// Bind this to whichever mode-switch control you choose.
+    /// </summary>
+    /// <param name="context">Input callback context from the new Input System.</param>
+    public void OnToggleAttackMode(InputAction.CallbackContext context)
+    {
+        if (context.started)
+        {
+            ToggleAttackMode();
+        }
+    }
+
+    /// <summary>
+    /// Directly sets the active attack mode. Useful for UI buttons, pickups, or other scripts.
+    /// </summary>
+    public void SetAttackMode(AttackMode attackMode)
+    {
+        currentAttackMode = attackMode;
+    }
+
+    /// <summary>
+    /// Switches between the two attack modes.
+    /// </summary>
+    public void ToggleAttackMode()
+    {
+        currentAttackMode = currentAttackMode == AttackMode.CloseMelee
+            ? AttackMode.RangedMelee
+            : AttackMode.CloseMelee;
+    }
+
+    /// <summary>
+    /// Optional debug shortcut for firing ranged melee directly.
     ///
-    /// This assumes the PlayerControls action is named RangedMelee and is bound
-    /// to T while the feature is being tested.
+    /// This can be removed once the mode switch flow is fully wired.
     /// </summary>
     /// <param name="context">Input callback context from the new Input System.</param>
     public void OnRangedMelee(InputAction.CallbackContext context)
@@ -97,9 +136,9 @@ public class PlayerAttack : MonoBehaviour
     /// </summary>
     private void Update()
     {
-        if (attackPressed && canAttack)
+        if (attackPressed)
         {
-            StartCoroutine(PerformAttack());
+            TryPerformCurrentAttackMode();
         }
 
         if (rangedMeleePressed && canRangedMelee)
@@ -109,6 +148,24 @@ public class PlayerAttack : MonoBehaviour
 
         attackPressed = false;
         rangedMeleePressed = false;
+    }
+
+    private void TryPerformCurrentAttackMode()
+    {
+        if (currentAttackMode == AttackMode.CloseMelee)
+        {
+            if (canAttack)
+            {
+                StartCoroutine(PerformAttack());
+            }
+
+            return;
+        }
+
+        if (currentAttackMode == AttackMode.RangedMelee && canRangedMelee)
+        {
+            StartCoroutine(PerformRangedMeleeAttack());
+        }
     }
 
     /// <summary>
