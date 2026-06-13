@@ -68,10 +68,23 @@ public class AttackHitbox : MonoBehaviour
         TryInteract(other);
     }
 
-    private void CheckForOverlappingObjects()
+    /// <summary>
+    /// Checks all colliders currently overlapping this hitbox and applies hit behavior.
+    ///
+    /// This is public so moving hitboxes can scan after they move, instead of relying
+    /// only on trigger-enter events that may miss fast transform-based movement.
+    /// </summary>
+    public void CheckForOverlappingObjects()
     {
         if (hitboxCollider == null)
+        {
+            hitboxCollider = GetComponent<Collider2D>();
+        }
+
+        if (hitboxCollider == null)
             return;
+
+        Physics2D.SyncTransforms();
 
         ContactFilter2D filter = new ContactFilter2D();
         filter.useTriggers = true;
