@@ -49,6 +49,7 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody2D rb;
     private Camera mainCamera;
+    private PlayerEnergy playerEnergy;
 
     private float horizontalInput;
     private bool jumpPressed;
@@ -95,6 +96,7 @@ public class PlayerMovement : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
 
         mainCamera = Camera.main;
+        playerEnergy = GetComponent<PlayerEnergy>();
         normalGravityScale = rb.gravityScale;
         lastGroundedPosition = transform.position;
 
@@ -218,10 +220,22 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (hasDashAbility && dashPressed && canDash && currentDashCharges > 0 && !isDashing)
+        if (hasDashAbility && dashPressed && canDash && !isDashing)
         {
-            dashPressed = false;
-            StartCoroutine(PerformDash());
+            if (currentDashCharges > 0)
+            {
+                dashPressed = false;
+                StartCoroutine(PerformDash(true));
+            }
+            else if (playerEnergy != null && playerEnergy.TryConsumeCharge())
+            {
+                dashPressed = false;
+                StartCoroutine(PerformDash(false));
+            }
+            else
+            {
+                dashPressed = false;
+            }
         }
         else
         {
@@ -488,12 +502,19 @@ public class PlayerMovement : MonoBehaviour
         Gizmos.DrawWireCube(rightWallBoxCenter, leftWallBoxSize);
     }
 
-    private System.Collections.IEnumerator PerformDash()
+    private System.Collections.IEnumerator PerformDash(bool consumeNormalDashCharge)
     {
-        if (!hasDashAbility || mainCamera == null || currentDashCharges <= 0 || !canDash)
+        if (!hasDashAbility || mainCamera == null || !canDash)
             yield break;
 
-        currentDashCharges--;
+        if (consumeNormalDashCharge)
+        {
+            if (currentDashCharges <= 0)
+                yield break;
+
+            currentDashCharges--;
+        }
+
         canDash = false;
         isDashing = true;
 
