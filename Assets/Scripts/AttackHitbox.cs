@@ -9,9 +9,8 @@ using UnityEngine;
 /// - prevents the same enemy from being hit multiple times during one attack,
 /// - applies knockback to eligible enemies,
 /// - consumes enemy marks when present,
-/// - applies bonus damage for consuming a mark,
+/// - applies bonus damage and bonus energy for consuming a mark,
 /// - refreshes projectile cooldown when a marked enemy is hit by melee,
-/// - heals the player when a marked enemy is hit by melee,
 /// - activates checkpoints hit by the player's melee attack,
 /// - activates buttons hit by the player's melee attack.
 /// </summary>
@@ -20,9 +19,6 @@ public class AttackHitbox : MonoBehaviour
     [Header("Damage")]
     public int damage = 10;
     public int markedBonusDamage = 30;
-
-    [Header("Marked Hit Reward")]
-    public int markedHitHealing = 5;
 
     [Header("References")]
     public PlayerProjectileAttack playerProjectileAttack;
@@ -34,6 +30,7 @@ public class AttackHitbox : MonoBehaviour
     private Collider2D hitboxCollider;
     private Transform ownerTransform;
     private PlayerHealth ownerHealth;
+    private PlayerEnergy ownerEnergy;
 
     private void Awake()
     {
@@ -44,10 +41,11 @@ public class AttackHitbox : MonoBehaviour
     /// Assigns the player references used by detached hitboxes, such as ranged melee attacks.
     /// Regular child hitboxes can still fall back to GetComponentInParent.
     /// </summary>
-    public void ConfigureOwner(Transform newOwnerTransform, PlayerHealth newOwnerHealth, PlayerProjectileAttack newPlayerProjectileAttack)
+    public void ConfigureOwner(Transform newOwnerTransform, PlayerHealth newOwnerHealth, PlayerProjectileAttack newPlayerProjectileAttack, PlayerEnergy newOwnerEnergy = null)
     {
         ownerTransform = newOwnerTransform;
         ownerHealth = newOwnerHealth;
+        ownerEnergy = newOwnerEnergy;
 
         if (newPlayerProjectileAttack != null)
         {
@@ -162,6 +160,12 @@ public class AttackHitbox : MonoBehaviour
         enemy.TakeDamage(damage);
         enemiesHit.Add(enemy);
 
+        PlayerEnergy playerEnergy = GetOwnerEnergy();
+        if (playerEnergy != null)
+        {
+            playerEnergy.AddEnergy(playerEnergy.meleeHitEnergy);
+        }
+
         EnemyMark enemyMark = other.GetComponent<EnemyMark>();
         if (enemyMark != null && enemyMark.ConsumeMark())
         {
@@ -172,10 +176,9 @@ public class AttackHitbox : MonoBehaviour
                 playerProjectileAttack.RefreshProjectileCooldown();
             }
 
-            PlayerHealth playerHealth = GetOwnerHealth();
-            if (playerHealth != null)
+            if (playerEnergy != null)
             {
-                playerHealth.Heal(markedHitHealing);
+                playerEnergy.AddEnergy(playerEnergy.markedComboBonusEnergy);
             }
         }
     }
@@ -186,6 +189,14 @@ public class AttackHitbox : MonoBehaviour
             return ownerHealth;
 
         return GetComponentInParent<PlayerHealth>();
+    }
+
+    private PlayerEnergy GetOwnerEnergy()
+    {
+        if (ownerEnergy != null)
+            return ownerEnergy;
+
+        return GetComponentInParent<PlayerEnergy>();
     }
 
     private Vector2 GetOwnerPosition()
