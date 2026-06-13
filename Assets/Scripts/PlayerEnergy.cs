@@ -39,7 +39,20 @@ public class PlayerEnergy : MonoBehaviour
     public int MaxCharges => maxCharges;
     public int MaxEnergy => energyPerCharge * maxCharges;
     public int CurrentCharges => energyPerCharge <= 0 ? 0 : currentEnergy / energyPerCharge;
-    public float CurrentChargeFill => energyPerCharge <= 0 ? 0f : (currentEnergy % energyPerCharge) / (float)energyPerCharge;
+    public float CurrentChargeFill
+    {
+        get
+        {
+            if (energyPerCharge <= 0 || currentEnergy <= 0)
+                return 0f;
+
+            int energyInCurrentCharge = currentEnergy % energyPerCharge;
+            if (energyInCurrentCharge == 0)
+                return 1f;
+
+            return energyInCurrentCharge / (float)energyPerCharge;
+        }
+    }
     public bool HasFullCharge => CurrentCharges > 0;
     public bool IsHealing => isHealing;
     public bool IsBerserkActive => isBerserkActive;
