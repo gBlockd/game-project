@@ -51,6 +51,7 @@ public class PlayerAttack : MonoBehaviour
 
     private PlayerHealth playerHealth;
     private PlayerProjectileAttack playerProjectileAttack;
+    private PlayerEnergy playerEnergy;
 
     /// <summary>
     /// Caches references used by melee and ranged melee attacks.
@@ -60,6 +61,7 @@ public class PlayerAttack : MonoBehaviour
         mainCamera = Camera.main;
         playerHealth = GetComponent<PlayerHealth>();
         playerProjectileAttack = GetComponent<PlayerProjectileAttack>();
+        playerEnergy = GetComponent<PlayerEnergy>();
     }
 
     private void OnEnable()
@@ -72,7 +74,7 @@ public class PlayerAttack : MonoBehaviour
     /// Input System callback for the primary attack input.
     ///
     /// The active attack mode decides whether this input performs close-range
-    /// melee or the ranged melee projectile attack.
+    /// melee or the ranged melee projectile attack. Berserk always forces ranged melee.
     /// </summary>
     /// <param name="context">Input callback context from the new Input System.</param>
     public void OnAttack(InputAction.CallbackContext context)
@@ -152,6 +154,16 @@ public class PlayerAttack : MonoBehaviour
 
     private void TryPerformCurrentAttackMode()
     {
+        if (playerEnergy != null && playerEnergy.IsBerserkActive)
+        {
+            if (canRangedMelee)
+            {
+                StartCoroutine(PerformRangedMeleeAttack());
+            }
+
+            return;
+        }
+
         if (currentAttackMode == AttackMode.CloseMelee)
         {
             if (canAttack)
@@ -196,7 +208,7 @@ public class PlayerAttack : MonoBehaviour
         AttackHitbox attackHitbox = attackHitboxObject.GetComponent<AttackHitbox>();
         if (attackHitbox != null)
         {
-            attackHitbox.ConfigureOwner(transform, playerHealth, playerProjectileAttack);
+            attackHitbox.ConfigureOwner(transform, playerHealth, playerProjectileAttack, playerEnergy);
         }
 
         attackHitboxObject.SetActive(true);
@@ -237,7 +249,7 @@ public class PlayerAttack : MonoBehaviour
         AttackHitbox attackHitbox = rangedHitboxObject.GetComponent<AttackHitbox>();
         if (attackHitbox != null)
         {
-            attackHitbox.ConfigureOwner(transform, playerHealth, playerProjectileAttack);
+            attackHitbox.ConfigureOwner(transform, playerHealth, playerProjectileAttack, playerEnergy);
         }
 
         RangedMeleeProjectile rangedProjectile = rangedHitboxObject.GetComponent<RangedMeleeProjectile>();
