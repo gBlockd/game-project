@@ -106,6 +106,14 @@ public class PlayerEnergy : MonoBehaviour
     }
 
     /// <summary>
+    /// Refills energy to the current maximum number of charges.
+    /// </summary>
+    public void FillEnergyToMax()
+    {
+        currentEnergy = MaxEnergy;
+    }
+
+    /// <summary>
     /// Spends exactly one full charge, preserving any extra partial energy.
     /// </summary>
     public bool TryConsumeCharge()
