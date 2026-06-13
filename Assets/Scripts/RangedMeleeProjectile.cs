@@ -4,7 +4,7 @@ using UnityEngine;
 /// Moves a spawned melee hitbox forward for a very short ranged attack.
 ///
 /// The hitbox starts fast, rapidly loses speed, and destroys itself after its lifetime.
-/// This script only handles movement and cleanup; hit detection remains on AttackHitbox.
+/// Hit detection remains on AttackHitbox, which this script asks to rescan after movement.
 /// </summary>
 public class RangedMeleeProjectile : MonoBehaviour
 {
@@ -13,6 +13,12 @@ public class RangedMeleeProjectile : MonoBehaviour
     private float deceleration;
     private float lifetime;
     private float elapsed;
+    private AttackHitbox attackHitbox;
+
+    private void Awake()
+    {
+        attackHitbox = GetComponent<AttackHitbox>();
+    }
 
     /// <summary>
     /// Sets the projectile's movement values and starts its lifetime timer.
@@ -30,6 +36,11 @@ public class RangedMeleeProjectile : MonoBehaviour
         deceleration = decelerationRate;
         lifetime = projectileLifetime;
         elapsed = 0f;
+
+        if (attackHitbox == null)
+        {
+            attackHitbox = GetComponent<AttackHitbox>();
+        }
     }
 
     private void Update()
@@ -38,6 +49,11 @@ public class RangedMeleeProjectile : MonoBehaviour
 
         transform.position += (Vector3)(moveDirection * currentSpeed * Time.deltaTime);
         currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, deceleration * Time.deltaTime);
+
+        if (attackHitbox != null)
+        {
+            attackHitbox.CheckForOverlappingObjects();
+        }
 
         if (elapsed >= lifetime)
         {
