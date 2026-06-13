@@ -32,10 +32,27 @@ public class AttackHitbox : MonoBehaviour
     private readonly HashSet<DoorButton> buttonsHit = new HashSet<DoorButton>();
 
     private Collider2D hitboxCollider;
+    private Transform ownerTransform;
+    private PlayerHealth ownerHealth;
 
     private void Awake()
     {
         hitboxCollider = GetComponent<Collider2D>();
+    }
+
+    /// <summary>
+    /// Assigns the player references used by detached hitboxes, such as ranged melee attacks.
+    /// Regular child hitboxes can still fall back to GetComponentInParent.
+    /// </summary>
+    public void ConfigureOwner(Transform newOwnerTransform, PlayerHealth newOwnerHealth, PlayerProjectileAttack newPlayerProjectileAttack)
+    {
+        ownerTransform = newOwnerTransform;
+        ownerHealth = newOwnerHealth;
+
+        if (newPlayerProjectileAttack != null)
+        {
+            playerProjectileAttack = newPlayerProjectileAttack;
+        }
     }
 
     private void OnEnable()
@@ -84,7 +101,7 @@ public class AttackHitbox : MonoBehaviour
         if (checkpointsHit.Contains(checkpoint))
             return;
 
-        PlayerHealth playerHealth = GetComponentInParent<PlayerHealth>();
+        PlayerHealth playerHealth = GetOwnerHealth();
         if (playerHealth == null)
             return;
 
@@ -115,7 +132,7 @@ public class AttackHitbox : MonoBehaviour
         if (enemiesHit.Contains(enemy))
             return;
 
-        Vector2 playerPosition = transform.parent.position;
+        Vector2 playerPosition = GetOwnerPosition();
 
         FlyingEnemyKnockback flyingKnockback = other.GetComponent<FlyingEnemyKnockback>();
         if (flyingKnockback != null)
@@ -142,11 +159,30 @@ public class AttackHitbox : MonoBehaviour
                 playerProjectileAttack.RefreshProjectileCooldown();
             }
 
-            PlayerHealth playerHealth = GetComponentInParent<PlayerHealth>();
+            PlayerHealth playerHealth = GetOwnerHealth();
             if (playerHealth != null)
             {
                 playerHealth.Heal(markedHitHealing);
             }
         }
+    }
+
+    private PlayerHealth GetOwnerHealth()
+    {
+        if (ownerHealth != null)
+            return ownerHealth;
+
+        return GetComponentInParent<PlayerHealth>();
+    }
+
+    private Vector2 GetOwnerPosition()
+    {
+        if (ownerTransform != null)
+            return ownerTransform.position;
+
+        if (transform.parent != null)
+            return transform.parent.position;
+
+        return transform.position;
     }
 }
