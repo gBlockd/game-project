@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 /// 
 /// When activated:
 /// - heals the player to full,
+/// - refills player energy to full,
 /// - updates the player's respawn point in the GameStateManager,
 /// - flashes green for visual feedback.
 /// </summary>
@@ -27,6 +28,12 @@ public class Checkpoint : MonoBehaviour
             return;
 
         playerHealth.ResetToFullHealth();
+
+        PlayerEnergy playerEnergy = playerHealth.GetComponent<PlayerEnergy>();
+        if (playerEnergy != null)
+        {
+            playerEnergy.FillEnergyToMax();
+        }
 
         Vector3 respawnPosition = respawnPoint != null
             ? respawnPoint.position
