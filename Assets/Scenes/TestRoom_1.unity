@@ -1451,6 +1451,10 @@ PrefabInstance:
       propertyPath: m_ActionEvents.Array.data[7].m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
       value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
+    - target: {fileID: 3007913999065541660, guid: a75183c05d0fee54d9313708eddef384, type: 3}
+      propertyPath: rangedMeleeCooldown
+      value: 0.25
+      objectReference: {fileID: 0}
     - target: {fileID: 3160480298873653045, guid: a75183c05d0fee54d9313708eddef384, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
