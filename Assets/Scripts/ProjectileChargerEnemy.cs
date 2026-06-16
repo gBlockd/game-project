@@ -11,7 +11,7 @@ using UnityEngine;
 /// - Dashes on a fixed timer, regardless of distance from the target point.
 /// - Before dashing, pauses and locks onto the player's current position.
 /// - Telegraphs the dash direction before and during the dash.
-/// - Telegraphs and fires two shifting projectiles after the dash.
+/// - Telegraphs and fires two shifting projectiles as the dash begins.
 /// - After dashing, quickly repositions toward its current target point for a short period.
 /// - After four dashes, switches to Pattern 2.
 ///
@@ -349,6 +349,9 @@ public class ProjectileChargerEnemy : MonoBehaviour
         isPreparingDash = false;
         isDashing = true;
 
+        ShowDashProjectileTelegraphs();
+        FireDashProjectiles();
+
         float elapsed = 0f;
 
         while (elapsed < dashDuration)
@@ -367,12 +370,6 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         isDashing = false;
         currentVelocity = Vector2.zero;
-
-        ShowDashProjectileTelegraphs();
-
-        yield return new WaitForSeconds(dashProjectileTelegraphDuration);
-
-        FireDashProjectiles();
 
         completedDashCount++;
 
