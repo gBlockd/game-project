@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -9,8 +10,8 @@ using UnityEngine;
 /// - Moves toward that point using acceleration/deceleration.
 /// - Dashes on a fixed timer, regardless of distance from the target point.
 /// - Before dashing, pauses and locks onto the player's current position.
-/// - Telegraphs the dash and projectile directions.
-/// - Fires two shifting projectiles, then dashes toward the locked player position.
+/// - Telegraphs the dash direction before and during the dash.
+/// - Telegraphs and fires two shifting projectiles as the dash begins.
 /// - After dashing, quickly repositions toward its current target point for a short period.
 /// - After four dashes, switches to Pattern 2.
 ///
@@ -58,6 +59,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
     [Header("Dash Telegraph")]
     public GameObject telegraphLinePrefab;
     public float telegraphLineLength = 12f;
+    public float dashProjectileTelegraphDuration = 1f;
     public Color chargeTelegraphColor = Color.red;
     public Color projectileTelegraphColor = Color.yellow;
     public float chargeTelegraphWidth = 0.14f;
@@ -106,12 +108,18 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
     private EnemyContactDamage contactDamage;
     private Coroutine activeBehaviorCoroutine;
+    private readonly List<AttackTelegraphLine> activeTelegraphs = new List<AttackTelegraphLine>();
 
     public bool CanDealContactDamage => isDashing;
 
     private void Awake()
     {
         contactDamage = GetComponentInChildren<EnemyContactDamage>();
+    }
+
+    private void OnDestroy()
+    {
+        ClearActiveTelegraphs();
     }
 
     private void Update()
@@ -334,14 +342,15 @@ public class ProjectileChargerEnemy : MonoBehaviour
             dashDirection = Vector2.right;
         }
 
-        ShowDashTelegraphs();
+        ShowDashTelegraph();
 
         yield return new WaitForSeconds(dashPauseDuration);
 
-        FireDashProjectiles();
-
         isPreparingDash = false;
         isDashing = true;
+
+        ShowDashProjectileTelegraphs();
+        FireDashProjectiles();
 
         float elapsed = 0f;
 
@@ -382,7 +391,24 @@ public class ProjectileChargerEnemy : MonoBehaviour
         activeBehaviorCoroutine = null;
     }
 
-    private void ShowDashTelegraphs()
+    private void ShowDashTelegraph()
+    {
+        if (telegraphLinePrefab == null || projectileSpawnPoint == null)
+            return;
+
+        Vector2 startPosition = projectileSpawnPoint.position;
+        float telegraphDuration = dashPauseDuration + dashDuration;
+
+        SpawnTelegraphLine(
+            startPosition,
+            dashDirection,
+            telegraphDuration,
+            chargeTelegraphColor,
+            chargeTelegraphWidth
+        );
+    }
+
+    private void ShowDashProjectileTelegraphs()
     {
         if (telegraphLinePrefab == null || projectileSpawnPoint == null)
             return;
@@ -393,16 +419,8 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         SpawnTelegraphLine(
             startPosition,
-            dashDirection,
-            dashPauseDuration,
-            chargeTelegraphColor,
-            chargeTelegraphWidth
-        );
-
-        SpawnTelegraphLine(
-            startPosition,
             upperDirection,
-            dashPauseDuration,
+            dashProjectileTelegraphDuration,
             projectileTelegraphColor,
             projectileTelegraphWidth
         );
@@ -410,7 +428,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
         SpawnTelegraphLine(
             startPosition,
             lowerDirection,
-            dashPauseDuration,
+            dashProjectileTelegraphDuration,
             projectileTelegraphColor,
             projectileTelegraphWidth
         );
@@ -453,6 +471,8 @@ public class ProjectileChargerEnemy : MonoBehaviour
                 color,
                 width
             );
+
+            RegisterTelegraph(telegraphLine);
         }
     }
 
@@ -474,7 +494,28 @@ public class ProjectileChargerEnemy : MonoBehaviour
                 duration,
                 angleOffsetDegrees
             );
+
+            RegisterTelegraph(telegraphLine);
         }
+    }
+
+    private void RegisterTelegraph(AttackTelegraphLine telegraphLine)
+    {
+        activeTelegraphs.Add(telegraphLine);
+        telegraphLine.SetOwner(transform);
+    }
+
+    private void ClearActiveTelegraphs()
+    {
+        for (int i = 0; i < activeTelegraphs.Count; i++)
+        {
+            if (activeTelegraphs[i] != null)
+            {
+                Destroy(activeTelegraphs[i].gameObject);
+            }
+        }
+
+        activeTelegraphs.Clear();
     }
 
     private IEnumerator PostDashRepositionSequence()

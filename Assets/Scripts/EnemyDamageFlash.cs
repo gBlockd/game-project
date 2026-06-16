@@ -6,7 +6,7 @@ using UnityEngine;
 /// 
 /// When Flash() is called:
 /// - the enemy's sprite color is set to a flash color,
-/// - after a short duration, it returns to its original color,
+/// - after a short duration, it returns to its current base color,
 /// - any ongoing flash is interrupted and restarted.
 /// </summary>
 public class EnemyDamageFlash : MonoBehaviour
@@ -17,6 +17,9 @@ public class EnemyDamageFlash : MonoBehaviour
 
     // Cached reference to the sprite renderer used for color changes.
     private SpriteRenderer spriteRenderer;
+
+    // Cached reference to the mark state, if this enemy can be marked.
+    private EnemyMark enemyMark;
 
     // Stores the original color of the sprite before any flash occurs.
     private Color originalColor;
@@ -30,7 +33,12 @@ public class EnemyDamageFlash : MonoBehaviour
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
-        originalColor = spriteRenderer.color;
+        enemyMark = GetComponent<EnemyMark>();
+
+        if (spriteRenderer != null)
+        {
+            originalColor = spriteRenderer.color;
+        }
     }
 
     /// <summary>
@@ -41,6 +49,9 @@ public class EnemyDamageFlash : MonoBehaviour
     /// </summary>
     public void Flash()
     {
+        if (spriteRenderer == null)
+            return;
+
         if (flashCoroutine != null)
         {
             StopCoroutine(flashCoroutine);
@@ -53,7 +64,7 @@ public class EnemyDamageFlash : MonoBehaviour
     /// Coroutine that handles the flash timing:
     /// - sets the sprite to the flash color,
     /// - waits for the configured duration,
-    /// - restores the original color.
+    /// - restores the correct unflashed color.
     /// </summary>
     private IEnumerator FlashRoutine()
     {
@@ -61,7 +72,17 @@ public class EnemyDamageFlash : MonoBehaviour
 
         yield return new WaitForSeconds(flashDuration);
 
-        spriteRenderer.color = originalColor;
+        spriteRenderer.color = GetRestoredColor();
         flashCoroutine = null;
+    }
+
+    private Color GetRestoredColor()
+    {
+        if (enemyMark != null && enemyMark.IsMarked)
+        {
+            return enemyMark.MarkColor;
+        }
+
+        return originalColor;
     }
 }

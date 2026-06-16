@@ -7,21 +7,39 @@ using UnityEngine;
 /// A mark:
 /// - is applied for a limited duration,
 /// - can be consumed early by other systems (e.g., melee attacks),
-/// - expires automatically if not consumed.
-/// 
-/// This script does not define what the mark does visually or mechanically,
-/// only its lifecycle and state.
+/// - expires automatically if not consumed,
+/// - changes the enemy sprite color while active.
 /// </summary>
 public class EnemyMark : MonoBehaviour
 {
+    [Header("Visuals")]
+    public Color markColor = Color.green;
+
     // Public read-only access to mark state.
     public bool IsMarked => isMarked;
+    public Color MarkColor => markColor;
+
+    // Cached reference to the enemy sprite used for the mark color.
+    private SpriteRenderer spriteRenderer;
+
+    // The sprite color to restore when the mark is removed.
+    private Color originalColor;
 
     // Internal state tracking whether the enemy is currently marked.
     private bool isMarked;
 
     // Tracks the active mark coroutine to prevent overlapping timers.
     private Coroutine markCoroutine;
+
+    private void Awake()
+    {
+        spriteRenderer = GetComponent<SpriteRenderer>();
+
+        if (spriteRenderer != null)
+        {
+            originalColor = spriteRenderer.color;
+        }
+    }
 
     /// <summary>
     /// Applies a mark to the enemy for the specified duration.
@@ -60,7 +78,7 @@ public class EnemyMark : MonoBehaviour
             markCoroutine = null;
         }
 
-        isMarked = false;
+        SetMarked(false);
         return true;
     }
 
@@ -74,11 +92,21 @@ public class EnemyMark : MonoBehaviour
     /// <param name="duration">Duration in seconds before the mark expires.</param>
     private IEnumerator MarkRoutine(float duration)
     {
-        isMarked = true;
+        SetMarked(true);
 
         yield return new WaitForSeconds(duration);
 
-        isMarked = false;
+        SetMarked(false);
         markCoroutine = null;
+    }
+
+    private void SetMarked(bool marked)
+    {
+        isMarked = marked;
+
+        if (spriteRenderer == null)
+            return;
+
+        spriteRenderer.color = isMarked ? markColor : originalColor;
     }
 }
