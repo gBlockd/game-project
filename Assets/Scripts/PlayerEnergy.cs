@@ -11,9 +11,9 @@ public class PlayerEnergy : MonoBehaviour
     [Header("Energy")]
     public int energyPerCharge = 100;
     public int maxCharges = 1;
-    public int meleeHitEnergy = 12;
-    public int projectileHitEnergy = 5;
-    public int markedComboBonusEnergy = 6;
+    public int meleeHitEnergy = 5;
+    public int projectileHitEnergy = 3;
+    public int markedComboBonusEnergy = 3;
 
     [Header("Healing")]
     public int healAmountPerTick = 1;
@@ -60,12 +60,36 @@ public class PlayerEnergy : MonoBehaviour
 
     private void Awake()
     {
+        ApplyUpdatedEnergyRewardDefaults();
+
         playerHealth = GetComponent<PlayerHealth>();
         spriteRenderer = GetComponent<SpriteRenderer>();
 
         if (spriteRenderer != null)
         {
             originalColor = spriteRenderer.color;
+        }
+    }
+
+    /// <summary>
+    /// Updates components that still have the old default reward values serialized.
+    /// Custom inspector values that differ from the old defaults are left alone.
+    /// </summary>
+    private void ApplyUpdatedEnergyRewardDefaults()
+    {
+        if (meleeHitEnergy == 12)
+        {
+            meleeHitEnergy = 5;
+        }
+
+        if (projectileHitEnergy == 5)
+        {
+            projectileHitEnergy = 3;
+        }
+
+        if (markedComboBonusEnergy == 6)
+        {
+            markedComboBonusEnergy = 3;
         }
     }
 
