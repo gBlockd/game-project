@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -106,12 +107,18 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
     private EnemyContactDamage contactDamage;
     private Coroutine activeBehaviorCoroutine;
+    private readonly List<AttackTelegraphLine> activeTelegraphs = new List<AttackTelegraphLine>();
 
     public bool CanDealContactDamage => isDashing;
 
     private void Awake()
     {
         contactDamage = GetComponentInChildren<EnemyContactDamage>();
+    }
+
+    private void OnDestroy()
+    {
+        ClearActiveTelegraphs();
     }
 
     private void Update()
@@ -453,6 +460,8 @@ public class ProjectileChargerEnemy : MonoBehaviour
                 color,
                 width
             );
+
+            RegisterTelegraph(telegraphLine);
         }
     }
 
@@ -474,7 +483,28 @@ public class ProjectileChargerEnemy : MonoBehaviour
                 duration,
                 angleOffsetDegrees
             );
+
+            RegisterTelegraph(telegraphLine);
         }
+    }
+
+    private void RegisterTelegraph(AttackTelegraphLine telegraphLine)
+    {
+        activeTelegraphs.Add(telegraphLine);
+        telegraphLine.SetOwner(transform);
+    }
+
+    private void ClearActiveTelegraphs()
+    {
+        for (int i = 0; i < activeTelegraphs.Count; i++)
+        {
+            if (activeTelegraphs[i] != null)
+            {
+                Destroy(activeTelegraphs[i].gameObject);
+            }
+        }
+
+        activeTelegraphs.Clear();
     }
 
     private IEnumerator PostDashRepositionSequence()
