@@ -10,8 +10,8 @@ using UnityEngine;
 /// - Moves toward that point using acceleration/deceleration.
 /// - Dashes on a fixed timer, regardless of distance from the target point.
 /// - Before dashing, pauses and locks onto the player's current position.
-/// - Telegraphs the dash and projectile directions.
-/// - Fires two shifting projectiles, then dashes toward the locked player position.
+/// - Telegraphs the dash direction before and during the dash.
+/// - Telegraphs and fires two shifting projectiles after the dash.
 /// - After dashing, quickly repositions toward its current target point for a short period.
 /// - After four dashes, switches to Pattern 2.
 ///
@@ -59,6 +59,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
     [Header("Dash Telegraph")]
     public GameObject telegraphLinePrefab;
     public float telegraphLineLength = 12f;
+    public float dashProjectileTelegraphDuration = 1f;
     public Color chargeTelegraphColor = Color.red;
     public Color projectileTelegraphColor = Color.yellow;
     public float chargeTelegraphWidth = 0.14f;
@@ -341,11 +342,9 @@ public class ProjectileChargerEnemy : MonoBehaviour
             dashDirection = Vector2.right;
         }
 
-        ShowDashTelegraphs();
+        ShowDashTelegraph();
 
         yield return new WaitForSeconds(dashPauseDuration);
-
-        FireDashProjectiles();
 
         isPreparingDash = false;
         isDashing = true;
@@ -369,6 +368,12 @@ public class ProjectileChargerEnemy : MonoBehaviour
         isDashing = false;
         currentVelocity = Vector2.zero;
 
+        ShowDashProjectileTelegraphs();
+
+        yield return new WaitForSeconds(dashProjectileTelegraphDuration);
+
+        FireDashProjectiles();
+
         completedDashCount++;
 
         if (completedDashCount >= dashesBeforeOrbitPattern)
@@ -389,7 +394,24 @@ public class ProjectileChargerEnemy : MonoBehaviour
         activeBehaviorCoroutine = null;
     }
 
-    private void ShowDashTelegraphs()
+    private void ShowDashTelegraph()
+    {
+        if (telegraphLinePrefab == null || projectileSpawnPoint == null)
+            return;
+
+        Vector2 startPosition = projectileSpawnPoint.position;
+        float telegraphDuration = dashPauseDuration + dashDuration;
+
+        SpawnTelegraphLine(
+            startPosition,
+            dashDirection,
+            telegraphDuration,
+            chargeTelegraphColor,
+            chargeTelegraphWidth
+        );
+    }
+
+    private void ShowDashProjectileTelegraphs()
     {
         if (telegraphLinePrefab == null || projectileSpawnPoint == null)
             return;
@@ -400,16 +422,8 @@ public class ProjectileChargerEnemy : MonoBehaviour
 
         SpawnTelegraphLine(
             startPosition,
-            dashDirection,
-            dashPauseDuration,
-            chargeTelegraphColor,
-            chargeTelegraphWidth
-        );
-
-        SpawnTelegraphLine(
-            startPosition,
             upperDirection,
-            dashPauseDuration,
+            dashProjectileTelegraphDuration,
             projectileTelegraphColor,
             projectileTelegraphWidth
         );
@@ -417,7 +431,7 @@ public class ProjectileChargerEnemy : MonoBehaviour
         SpawnTelegraphLine(
             startPosition,
             lowerDirection,
-            dashPauseDuration,
+            dashProjectileTelegraphDuration,
             projectileTelegraphColor,
             projectileTelegraphWidth
         );
