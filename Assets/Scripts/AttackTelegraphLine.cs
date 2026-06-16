@@ -21,12 +21,25 @@ public class AttackTelegraphLine : MonoBehaviour
     private float trackingAngleOffset;
     private bool isTracking;
 
+    private Transform owner;
+    private bool hasOwner;
+
     private void Awake()
     {
         if (lineRenderer == null)
         {
             lineRenderer = GetComponent<LineRenderer>();
         }
+    }
+
+    /// <summary>
+    /// Assigns the enemy or object that created this telegraph.
+    /// If that owner is destroyed before the timer ends, the line is removed too.
+    /// </summary>
+    public void SetOwner(Transform newOwner)
+    {
+        owner = newOwner;
+        hasOwner = owner != null;
     }
 
     public void Initialize(Vector2 startPosition, Vector2 direction, float length, float duration)
@@ -88,6 +101,12 @@ public class AttackTelegraphLine : MonoBehaviour
 
     private void Update()
     {
+        if (hasOwner && owner == null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         if (!isTracking || lineRenderer == null || trackingOrigin == null || trackingTarget == null)
             return;
 
