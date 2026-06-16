@@ -32,6 +32,8 @@ public class PlayerProjectileAttack : MonoBehaviour
     // Tracks the currently running cooldown coroutine so it can be interrupted or refreshed.
     private Coroutine cooldownCoroutine;
 
+    private PlayerEnergy playerEnergy;
+
     // Public read-only access for UI or other gameplay systems.
     public bool CanFireProjectile => canFireProjectile;
 
@@ -41,6 +43,7 @@ public class PlayerProjectileAttack : MonoBehaviour
     private void Awake()
     {
         mainCamera = UnityEngine.Camera.main;
+        playerEnergy = GetComponent<PlayerEnergy>();
     }
 
     /// <summary>
@@ -71,10 +74,21 @@ public class PlayerProjectileAttack : MonoBehaviour
 
         firePressed = false;
 
-        if (canFireProjectile)
+        if (CanUseProjectileAttack())
         {
             FireProjectile();
         }
+    }
+
+    private bool CanUseProjectileAttack()
+    {
+        if (!canFireProjectile)
+            return false;
+
+        if (playerEnergy != null && playerEnergy.IsBerserkActive)
+            return false;
+
+        return true;
     }
 
     /// <summary>
@@ -110,7 +124,7 @@ public class PlayerProjectileAttack : MonoBehaviour
         Projectile projectile = projectileObject.GetComponent<Projectile>();
         if (projectile != null)
         {
-            projectile.Initialize(direction);
+            projectile.Initialize(direction, playerEnergy);
         }
 
         StartProjectileCooldown();
