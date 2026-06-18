@@ -8,13 +8,14 @@ using UnityEngine.SceneManagement;
 /// Stores the currently loaded run state across scene transitions.
 ///
 /// GameStateManager keeps the live in-memory state that gameplay scripts read
-/// and write. SaveSystem turns that live state into one JSON file per save slot.
+/// and write. SaveSystem turns progression state into one JSON file per save slot.
+/// Current health and current energy are runtime-only and refill when loading a run.
 /// </summary>
 public class GameStateManager : MonoBehaviour
 {
     public static GameStateManager Instance { get; private set; }
 
-    [Header("Player State")]
+    [Header("Player Runtime State")]
     public int currentHealth = 100;
     public int maxHealth = 100;
 
@@ -148,7 +149,8 @@ public class GameStateManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Writes the current run state into the active save slot.
+    /// Writes the current run progression into the active save slot.
+    /// Current health and current energy are intentionally not saved.
     /// </summary>
     public bool SaveCurrentSlot()
     {
@@ -160,7 +162,8 @@ public class GameStateManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Stores the player's current and maximum health, clamping current health into range.
+    /// Stores the player's current and maximum health for the active runtime session.
+    /// Only max health is copied into save data.
     /// </summary>
     public void SetHealth(int newCurrentHealth, int newMaxHealth)
     {
@@ -169,7 +172,7 @@ public class GameStateManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Restores the stored player health value to the current maximum.
+    /// Restores the runtime player health value to the current maximum.
     /// </summary>
     public void ResetHealthToFull()
     {
@@ -354,8 +357,8 @@ public class GameStateManager : MonoBehaviour
 
     private void ResetRunState(string fallbackStartSceneName)
     {
-        currentHealth = Mathf.Max(1, maxHealth);
         maxHealth = Mathf.Max(1, maxHealth);
+        currentHealth = maxHealth;
 
         flightUnlocked = false;
         dashUnlocked = false;
@@ -386,7 +389,7 @@ public class GameStateManager : MonoBehaviour
         newGameStartSceneName = data.newGameStartSceneName;
 
         maxHealth = Mathf.Max(1, data.maxHealth);
-        currentHealth = Mathf.Clamp(data.currentHealth, 0, maxHealth);
+        currentHealth = maxHealth;
 
         flightUnlocked = data.flightUnlocked;
         dashUnlocked = data.dashUnlocked;
@@ -412,7 +415,6 @@ public class GameStateManager : MonoBehaviour
         {
             slotIndex = activeSaveSlotIndex,
             isInUse = true,
-            currentHealth = currentHealth,
             maxHealth = maxHealth,
             flightUnlocked = flightUnlocked,
             dashUnlocked = dashUnlocked,
@@ -495,6 +497,7 @@ public class GameStateManager : MonoBehaviour
 
         player.transform.position = spawnPosition;
         ResetPlayerMotion(player.gameObject);
+        RestorePlayerVitals(player);
     }
 
     private bool TryGetSavedSpawnPosition(string sceneName, out Vector3 spawnPosition)
@@ -529,6 +532,17 @@ public class GameStateManager : MonoBehaviour
         {
             movement.ResetMomentum();
             movement.RefreshUnlockedAbilityState();
+        }
+    }
+
+    private void RestorePlayerVitals(PlayerHealth player)
+    {
+        player.ResetToFullHealth();
+
+        PlayerEnergy playerEnergy = player.GetComponent<PlayerEnergy>();
+        if (playerEnergy != null)
+        {
+            playerEnergy.FillEnergyToMax();
         }
     }
 }
