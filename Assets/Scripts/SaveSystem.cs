@@ -91,8 +91,7 @@ public static class SaveSystem
             slotIndex = slotIndex,
             isInUse = true,
             newGameStartSceneName = newGameStartSceneName,
-            maxHealth = Mathf.Max(1, maxHealth),
-            currentHealth = Mathf.Max(1, maxHealth)
+            maxHealth = Mathf.Max(1, maxHealth)
         };
 
         SaveSlot(data);
