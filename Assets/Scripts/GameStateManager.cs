@@ -1,29 +1,31 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Stores persistent game state across scene transitions.
-/// 
-/// Currently stores:
-/// - player health,
-/// - unlocked player abilities,
-/// - initial spawn scene and position,
-/// - active checkpoint scene and position,
-/// - activated buttons,
-/// - killed enemy IDs,
-/// - registered locked doors.
+/// Stores the currently loaded run state across scene transitions.
+///
+/// GameStateManager keeps the live in-memory state that gameplay scripts read
+/// and write. SaveSystem turns progression state into one JSON file per save slot.
+/// Current health and current energy are runtime-only and refill when loading a run.
 /// </summary>
 public class GameStateManager : MonoBehaviour
 {
     public static GameStateManager Instance { get; private set; }
 
-    [Header("Player State")]
+    [Header("Player Runtime State")]
     public int currentHealth = 100;
     public int maxHealth = 100;
 
     [Header("Unlocked Abilities")]
     [SerializeField] private bool flightUnlocked;
     [SerializeField] private bool dashUnlocked;
+
+    private int activeSaveSlotIndex = -1;
+    private string newGameStartSceneName;
+    private bool shouldApplySavedSpawnOnNextSceneLoad;
 
     private bool hasInitialSpawn;
     private string initialSpawnSceneName;
@@ -33,10 +35,13 @@ public class GameStateManager : MonoBehaviour
     private string checkpointSceneName;
     private Vector3 checkpointPosition;
 
-    private readonly HashSet<string> activatedButtons = new HashSet<string>();
-    private readonly HashSet<string> killedEnemyIds = new HashSet<string>();
+    private readonly HashSet<string> activatedButtons = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> killedEnemyIds = new HashSet<string>(StringComparer.Ordinal);
 
     private readonly Dictionary<string, List<LockedDoor>> registeredDoors = new Dictionary<string, List<LockedDoor>>();
+
+    public int ActiveSaveSlotIndex => activeSaveSlotIndex;
+    public bool HasActiveSaveSlot => activeSaveSlotIndex > 0;
 
     public bool HasFlightAbility => flightUnlocked;
     public bool HasDashAbility => dashUnlocked;
@@ -64,19 +69,110 @@ public class GameStateManager : MonoBehaviour
         Instance = this;
         transform.SetParent(null);
         DontDestroyOnLoad(gameObject);
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
     }
 
     /// <summary>
-    /// Stores the player's current and maximum health, clamping current health into range.
+    /// Checks whether the requested slot already has a save file.
+    /// </summary>
+    public bool SaveSlotExists(int slotIndex)
+    {
+        return SaveSystem.SaveSlotExists(slotIndex);
+    }
+
+    /// <summary>
+    /// Loads an existing slot or creates a new run in that slot.
+    ///
+    /// The fallback scene is used for a brand-new run, before any initial spawn
+    /// or checkpoint has been recorded.
+    /// </summary>
+    public void LoadOrCreateSaveSlot(int slotIndex, string fallbackStartSceneName)
+    {
+        if (slotIndex <= 0)
+        {
+            Debug.LogWarning("Save slot index must be greater than zero.");
+            return;
+        }
+
+        activeSaveSlotIndex = slotIndex;
+        newGameStartSceneName = fallbackStartSceneName;
+
+        SaveSlotData data = SaveSystem.LoadSlot(slotIndex);
+
+        if (data == null)
+        {
+            ResetRunState(fallbackStartSceneName);
+            data = SaveSystem.CreateNewSlot(slotIndex, fallbackStartSceneName, maxHealth);
+        }
+        else if (string.IsNullOrWhiteSpace(data.newGameStartSceneName) && !string.IsNullOrWhiteSpace(fallbackStartSceneName))
+        {
+            data.newGameStartSceneName = fallbackStartSceneName;
+            SaveSystem.SaveSlot(data);
+        }
+
+        ApplySaveData(data);
+    }
+
+    /// <summary>
+    /// Returns the scene that should load for the currently selected save slot.
+    /// </summary>
+    public string GetSceneNameForCurrentSave(string fallbackStartSceneName)
+    {
+        if (hasCheckpoint && !string.IsNullOrWhiteSpace(checkpointSceneName))
+            return checkpointSceneName;
+
+        if (hasInitialSpawn && !string.IsNullOrWhiteSpace(initialSpawnSceneName))
+            return initialSpawnSceneName;
+
+        if (!string.IsNullOrWhiteSpace(newGameStartSceneName))
+            return newGameStartSceneName;
+
+        return fallbackStartSceneName;
+    }
+
+    /// <summary>
+    /// Tells the manager to place the player at the saved spawn after the next scene load.
+    /// This is meant for loading from the main menu and avoids interfering with room transitions.
+    /// </summary>
+    public void ApplySavedSpawnAfterNextSceneLoad()
+    {
+        shouldApplySavedSpawnOnNextSceneLoad = true;
+    }
+
+    /// <summary>
+    /// Writes the current run progression into the active save slot.
+    /// Current health and current energy are intentionally not saved.
+    /// </summary>
+    public bool SaveCurrentSlot()
+    {
+        if (!HasActiveSaveSlot)
+            return false;
+
+        SaveSystem.SaveSlot(CreateSaveDataFromCurrentState());
+        return true;
+    }
+
+    /// <summary>
+    /// Stores the player's current and maximum health for the active runtime session.
+    /// Only max health is copied into save data.
     /// </summary>
     public void SetHealth(int newCurrentHealth, int newMaxHealth)
     {
-        maxHealth = newMaxHealth;
+        maxHealth = Mathf.Max(1, newMaxHealth);
         currentHealth = Mathf.Clamp(newCurrentHealth, 0, maxHealth);
     }
 
     /// <summary>
-    /// Restores the stored player health value to the current maximum.
+    /// Restores the runtime player health value to the current maximum.
     /// </summary>
     public void ResetHealthToFull()
     {
@@ -142,10 +238,12 @@ public class GameStateManager : MonoBehaviour
         initialSpawnSceneName = sceneName;
         initialSpawnPosition = respawnPosition;
         hasInitialSpawn = true;
+
+        SaveCurrentSlot();
     }
 
     /// <summary>
-    /// Stores the latest checkpoint scene and position for future respawns.
+    /// Stores the latest checkpoint scene and position, then saves the active slot.
     /// </summary>
     public void SetCheckpoint(string sceneName, Vector3 respawnPosition)
     {
@@ -155,10 +253,13 @@ public class GameStateManager : MonoBehaviour
         checkpointSceneName = sceneName;
         checkpointPosition = respawnPosition;
         hasCheckpoint = true;
+
+        SaveCurrentSlot();
     }
 
     /// <summary>
     /// Marks a button as activated and opens any registered doors linked to that button ID.
+    /// Button state is written to disk the next time a checkpoint saves the run.
     /// </summary>
     public void SetButtonActivated(string buttonId)
     {
@@ -224,7 +325,8 @@ public class GameStateManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Records an enemy ID as killed so it can stay gone until enemy state is cleared.
+    /// Records an enemy ID as killed for the current in-memory life only.
+    /// These enemies still reset on player death and are not written to save files yet.
     /// </summary>
     public void RegisterKilledEnemy(string enemyId)
     {
@@ -235,7 +337,7 @@ public class GameStateManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Checks whether an enemy ID has already been killed.
+    /// Checks whether an enemy ID has already been killed in the current in-memory life.
     /// </summary>
     public bool IsEnemyKilled(string enemyId)
     {
@@ -251,5 +353,196 @@ public class GameStateManager : MonoBehaviour
     public void ClearKilledEnemies()
     {
         killedEnemyIds.Clear();
+    }
+
+    private void ResetRunState(string fallbackStartSceneName)
+    {
+        maxHealth = Mathf.Max(1, maxHealth);
+        currentHealth = maxHealth;
+
+        flightUnlocked = false;
+        dashUnlocked = false;
+
+        newGameStartSceneName = fallbackStartSceneName;
+
+        hasInitialSpawn = false;
+        initialSpawnSceneName = string.Empty;
+        initialSpawnPosition = Vector3.zero;
+
+        hasCheckpoint = false;
+        checkpointSceneName = string.Empty;
+        checkpointPosition = Vector3.zero;
+
+        activatedButtons.Clear();
+        killedEnemyIds.Clear();
+        registeredDoors.Clear();
+    }
+
+    private void ApplySaveData(SaveSlotData data)
+    {
+        if (data == null)
+            return;
+
+        data.EnsureListsExist();
+
+        activeSaveSlotIndex = data.slotIndex;
+        newGameStartSceneName = data.newGameStartSceneName;
+
+        maxHealth = Mathf.Max(1, data.maxHealth);
+        currentHealth = maxHealth;
+
+        flightUnlocked = data.flightUnlocked;
+        dashUnlocked = data.dashUnlocked;
+
+        hasInitialSpawn = data.hasInitialSpawn;
+        initialSpawnSceneName = data.initialSpawnSceneName;
+        initialSpawnPosition = data.initialSpawnPosition;
+
+        hasCheckpoint = data.hasCheckpoint;
+        checkpointSceneName = data.checkpointSceneName;
+        checkpointPosition = data.checkpointPosition;
+
+        activatedButtons.Clear();
+        AddIdsToSet(data.activatedButtonIds, activatedButtons);
+
+        killedEnemyIds.Clear();
+        registeredDoors.Clear();
+    }
+
+    private SaveSlotData CreateSaveDataFromCurrentState()
+    {
+        return new SaveSlotData
+        {
+            slotIndex = activeSaveSlotIndex,
+            isInUse = true,
+            maxHealth = maxHealth,
+            flightUnlocked = flightUnlocked,
+            dashUnlocked = dashUnlocked,
+            newGameStartSceneName = newGameStartSceneName,
+            hasInitialSpawn = hasInitialSpawn,
+            initialSpawnSceneName = initialSpawnSceneName,
+            initialSpawnPosition = initialSpawnPosition,
+            hasCheckpoint = hasCheckpoint,
+            checkpointSceneName = checkpointSceneName,
+            checkpointPosition = checkpointPosition,
+            activatedButtonIds = CopyIdsToList(activatedButtons)
+        };
+    }
+
+    private void AddIdsToSet(List<string> ids, HashSet<string> targetSet)
+    {
+        if (ids == null || targetSet == null)
+            return;
+
+        for (int i = 0; i < ids.Count; i++)
+        {
+            if (!string.IsNullOrWhiteSpace(ids[i]))
+            {
+                targetSet.Add(ids[i]);
+            }
+        }
+    }
+
+    private List<string> CopyIdsToList(HashSet<string> sourceSet)
+    {
+        List<string> ids = new List<string>();
+
+        if (sourceSet == null)
+            return ids;
+
+        foreach (string id in sourceSet)
+        {
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                ids.Add(id);
+            }
+        }
+
+        ids.Sort(StringComparer.Ordinal);
+        return ids;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (!shouldApplySavedSpawnOnNextSceneLoad)
+            return;
+
+        shouldApplySavedSpawnOnNextSceneLoad = false;
+        StartCoroutine(ApplySavedSpawnAfterSceneLoad(scene));
+    }
+
+    private IEnumerator ApplySavedSpawnAfterSceneLoad(Scene scene)
+    {
+        yield return null;
+
+        PlayerHealth player = FindAnyObjectByType<PlayerHealth>();
+        if (player == null)
+            yield break;
+
+        Vector3 spawnPosition;
+        bool hasSpawnPosition = TryGetSavedSpawnPosition(scene.name, out spawnPosition);
+
+        if (!hasSpawnPosition)
+        {
+            SpawnPoint defaultSpawnPoint = FindAnyObjectByType<SpawnPoint>();
+            if (defaultSpawnPoint != null)
+            {
+                spawnPosition = defaultSpawnPoint.transform.position;
+                hasSpawnPosition = true;
+            }
+        }
+
+        if (!hasSpawnPosition)
+            yield break;
+
+        player.transform.position = spawnPosition;
+        ResetPlayerMotion(player.gameObject);
+        RestorePlayerVitals(player);
+    }
+
+    private bool TryGetSavedSpawnPosition(string sceneName, out Vector3 spawnPosition)
+    {
+        if (hasCheckpoint && string.Equals(sceneName, checkpointSceneName, StringComparison.Ordinal))
+        {
+            spawnPosition = checkpointPosition;
+            return true;
+        }
+
+        if (hasInitialSpawn && string.Equals(sceneName, initialSpawnSceneName, StringComparison.Ordinal))
+        {
+            spawnPosition = initialSpawnPosition;
+            return true;
+        }
+
+        spawnPosition = Vector3.zero;
+        return false;
+    }
+
+    private void ResetPlayerMotion(GameObject playerObject)
+    {
+        Rigidbody2D rb = playerObject.GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
+
+        PlayerMovement movement = playerObject.GetComponent<PlayerMovement>();
+        if (movement != null)
+        {
+            movement.ResetMomentum();
+            movement.RefreshUnlockedAbilityState();
+        }
+    }
+
+    private void RestorePlayerVitals(PlayerHealth player)
+    {
+        player.ResetToFullHealth();
+
+        PlayerEnergy playerEnergy = player.GetComponent<PlayerEnergy>();
+        if (playerEnergy != null)
+        {
+            playerEnergy.FillEnergyToMax();
+        }
     }
 }
