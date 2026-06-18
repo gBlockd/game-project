@@ -5,9 +5,9 @@ using UnityEngine;
 /// <summary>
 /// Serializable data for one saved run.
 ///
-/// This class stores only plain data so Unity can write it to JSON.
-/// Runtime-only scene references, such as registered door objects, are rebuilt
-/// by scene scripts after a scene loads.
+/// This class stores only plain progression data so Unity can write it to JSON.
+/// Runtime-only values, such as current health and current energy, are restored
+/// to full when a saved run loads at its checkpoint.
 /// </summary>
 [Serializable]
 public class SaveSlotData
@@ -16,7 +16,6 @@ public class SaveSlotData
     public bool isInUse;
     public string lastSavedUtc;
 
-    public int currentHealth = 100;
     public int maxHealth = 100;
 
     public bool flightUnlocked;
