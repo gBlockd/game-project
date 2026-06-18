@@ -164,7 +164,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 173cbea55df26084e879463ce4c1ca16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlightBarUI
-  playerMovement: {fileID: 0}
+  playerMovement: {fileID: 8721166434698752896, guid: a75183c05d0fee54d9313708eddef384, type: 3}
   fillImage: {fileID: 7455743686187682267}
 --- !u!1 &1486280691086893047
 GameObject:
@@ -434,7 +434,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bad11193df6deb43bebda21e3e88344, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthBarUI
-  playerHealth: {fileID: 0}
+  playerHealth: {fileID: 4293475544043593789, guid: a75183c05d0fee54d9313708eddef384, type: 3}
   fillImage: {fileID: 4693303822673727616}
 --- !u!1 &4290542237012757651
 GameObject:
@@ -562,7 +562,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00a28921a57e4474a8e875fe87bc2394, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerEnergyMeterUI
-  playerEnergy: {fileID: 0}
+  playerEnergy: {fileID: 5908522845479179198, guid: a75183c05d0fee54d9313708eddef384, type: 3}
   fillImage: {fileID: 7049182262757398618}
   chargingColor: {r: 1, g: 1, b: 1, a: 1}
   chargeReadyColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}

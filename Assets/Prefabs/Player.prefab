@@ -196,6 +196,7 @@ GameObject:
   - component: {fileID: 973909806964752751}
   - component: {fileID: 7307025832559878854}
   - component: {fileID: -1265555031157248700}
+  - component: {fileID: 5908522845479179198}
   m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
@@ -637,3 +638,25 @@ MonoBehaviour:
   flashColor: {r: 0, g: 1, b: 0, a: 1}
   flashCount: 3
   flashInterval: 0.25
+--- !u!114 &5908522845479179198
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3726930671731581257}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75e42aef8f9e4d6dbf4bbd4e0efbca97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerEnergy
+  energyPerCharge: 100
+  maxCharges: 1
+  meleeHitEnergy: 5
+  projectileHitEnergy: 3
+  markedComboBonusEnergy: 3
+  healAmountPerTick: 1
+  healTickInterval: 0.2
+  healDuration: 10
+  berserkDuration: 5
+  berserkColor: {r: 1, g: 0, b: 0, a: 1}
