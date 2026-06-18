@@ -101,7 +101,7 @@ public class RespawnManager : MonoBehaviour
                 newPlayer.transform.position = defaultSpawnPoint.transform.position;
             }
 
-            newPlayer.ResetToFullHealth();
+            RestorePlayerVitals(newPlayer);
         }
 
         yield return new WaitForSeconds(blackScreenDuration);
@@ -197,6 +197,17 @@ public class RespawnManager : MonoBehaviour
         for (int i = 0; i < renderers.Length; i++)
         {
             renderers[i].enabled = visible;
+        }
+    }
+
+    private void RestorePlayerVitals(PlayerHealth player)
+    {
+        player.ResetToFullHealth();
+
+        PlayerEnergy playerEnergy = player.GetComponent<PlayerEnergy>();
+        if (playerEnergy != null)
+        {
+            playerEnergy.FillEnergyToMax();
         }
     }
 }
