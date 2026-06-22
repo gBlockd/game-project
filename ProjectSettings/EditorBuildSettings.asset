@@ -12,19 +12,19 @@ EditorBuildSettings:
     path: Assets/Scenes/Start_Menu.unity
     guid: a421469c5b70b5d4bad150409da81a85
   - enabled: 1
-    path: Assets/Scenes/Comp Sci/FirstRoom.unity
+    path: Assets/Scenes/Test Stages/FirstRoom.unity
     guid: c66419b3854ca5e40bd68e42a57c3b8c
   - enabled: 1
-    path: Assets/Scenes/Comp Sci/SecondRoom.unity
+    path: Assets/Scenes/Test Stages/SecondRoom.unity
     guid: fc88b8cdf899954468c6bb98dfef7db2
   - enabled: 1
-    path: Assets/Scenes/Comp Sci/ThirdRoom.unity
+    path: Assets/Scenes/Test Stages/ThirdRoom.unity
     guid: 4659944ef1c2aa049ba6d44bc548b012
   - enabled: 1
-    path: Assets/Scenes/Comp Sci/FourthRoom.unity
+    path: Assets/Scenes/Test Stages/FourthRoom.unity
     guid: 025d572fc7a7c354f834bc304dfd005e
   - enabled: 1
-    path: Assets/Scenes/Comp Sci/End.unity
+    path: Assets/Scenes/Test Stages/End.unity
     guid: 1ed392ff0693b544db73eae606f98222
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
