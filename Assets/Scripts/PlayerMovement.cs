@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
@@ -144,6 +144,15 @@ public class PlayerMovement : MonoBehaviour
         dashPressed = false;
         isDashing = false;
         dashDirection = Vector2.zero;
+    }
+
+    public void ClearInputState()
+    {
+        horizontalInput = 0f;
+        jumpPressed = false;
+        flyHeld = false;
+        diveHeld = false;
+        dashPressed = false;
     }
 
     public void OnMoveHorizontal(InputAction.CallbackContext context)
