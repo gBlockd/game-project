@@ -66,6 +66,14 @@ public class PlayerAttack : MonoBehaviour
 
     private void OnEnable()
     {
+        ClearInputState();
+    }
+
+    /// <summary>
+    /// Clears any attack inputs that were queued before pausing or disabling controls.
+    /// </summary>
+    public void ClearInputState()
+    {
         attackPressed = false;
         rangedMeleePressed = false;
     }
