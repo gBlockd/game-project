@@ -251,7 +251,7 @@ public class PauseMenuController : MonoBehaviour
         {
             if (movement != null)
             {
-                movement.ResetMomentum();
+                movement.ClearInputState();
             }
         }
 
@@ -260,7 +260,7 @@ public class PauseMenuController : MonoBehaviour
         {
             if (attack != null)
             {
-                attack.SendMessage("ClearInputState", SendMessageOptions.DontRequireReceiver);
+                attack.ClearInputState();
             }
         }
 
@@ -269,7 +269,7 @@ public class PauseMenuController : MonoBehaviour
         {
             if (projectileAttack != null)
             {
-                projectileAttack.SendMessage("ClearInputState", SendMessageOptions.DontRequireReceiver);
+                projectileAttack.ClearInputState();
             }
         }
     }
