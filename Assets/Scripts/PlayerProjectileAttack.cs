@@ -62,6 +62,14 @@ public class PlayerProjectileAttack : MonoBehaviour
     }
 
     /// <summary>
+    /// Clears any projectile input that was queued before pausing or disabling controls.
+    /// </summary>
+    public void ClearInputState()
+    {
+        firePressed = false;
+    }
+
+    /// <summary>
     /// Checks for a queued projectile fire input and fires if allowed.
     /// 
     /// The input flag is always cleared after being processed so each click
