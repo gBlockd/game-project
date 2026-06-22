@@ -32,6 +32,7 @@ public class PauseMenuController : MonoBehaviour
     private readonly List<PlayerInput> disabledGameplayInputs = new List<PlayerInput>();
 
     private bool isPaused;
+    private int lastPauseToggleFrame = -1;
     private float previousTimeScale = 1f;
     private CursorLockMode previousCursorLockMode;
     private bool previousCursorVisible;
@@ -71,6 +72,11 @@ public class PauseMenuController : MonoBehaviour
 
     public void TogglePause()
     {
+        if (lastPauseToggleFrame == Time.frameCount)
+            return;
+
+        lastPauseToggleFrame = Time.frameCount;
+
         if (isPaused)
         {
             ResumeGame();
@@ -165,8 +171,8 @@ public class PauseMenuController : MonoBehaviour
         ClearGameplayInputBuffers();
 
         Time.timeScale = 1f;
-        Cursor.lockState = previousCursorLockMode;
-        Cursor.visible = previousCursorVisible;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
         isPaused = false;
 
         SceneManager.LoadScene(mainMenuSceneName);
