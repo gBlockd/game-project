@@ -8,6 +8,7 @@ using UnityEngine;
 /// - freezes crawler movement temporarily,
 /// - pushes the enemy left or right away from the attacker,
 /// - keeps the crawler on the horizontal axis only,
+/// - holds the crawler still for a short beat after the shove finishes,
 /// - restores normal crawling afterward.
 /// </summary>
 public class CrawlerEnemyKnockback : MonoBehaviour
@@ -15,6 +16,7 @@ public class CrawlerEnemyKnockback : MonoBehaviour
     [Header("Knockback")]
     public float knockbackDistance = 0.75f;
     public float knockbackDuration = 0.08f;
+    public float postKnockbackFreezeDuration = 0.15f;
 
     private CrawlerEnemy crawlerEnemy;
     private Coroutine knockbackCoroutine;
@@ -49,11 +51,12 @@ public class CrawlerEnemyKnockback : MonoBehaviour
 
         crawlerEnemy.SetFrozen(true);
 
+        float moveDuration = Mathf.Max(0f, knockbackDuration);
         float elapsed = 0f;
 
-        while (elapsed < knockbackDuration)
+        while (elapsed < moveDuration)
         {
-            float t = elapsed / knockbackDuration;
+            float t = moveDuration > 0f ? elapsed / moveDuration : 1f;
             transform.position = Vector2.Lerp(startPosition, targetPosition, t);
 
             elapsed += Time.deltaTime;
@@ -61,6 +64,12 @@ public class CrawlerEnemyKnockback : MonoBehaviour
         }
 
         transform.position = targetPosition;
+
+        float freezeDuration = Mathf.Max(0f, postKnockbackFreezeDuration);
+        if (freezeDuration > 0f)
+        {
+            yield return new WaitForSeconds(freezeDuration);
+        }
 
         crawlerEnemy.SetFrozen(false);
         knockbackCoroutine = null;
