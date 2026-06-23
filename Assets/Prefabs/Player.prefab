@@ -498,6 +498,10 @@ MonoBehaviour:
       m_Calls: []
     m_ActionId: b1349847-34eb-46bd-9ec8-bd435ed68090
     m_ActionName: 'Gameplay/BoostAttack[/Keyboard/r]'
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: b7b0b629-86b9-4fca-ada9-aee3ba462875
+    m_ActionName: 'Gameplay/Pause[/Keyboard/escape]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Gameplay
@@ -573,7 +577,7 @@ MonoBehaviour:
   currentAttackMode: 0
   attackHitboxObject: {fileID: 2469936790931915907}
   attackRange: 1
-  attackDuration: 0.1
+  attackDuration: 0.3
   attackCooldown: 0.5
   rangedMeleeSpawnDistance: 1.2
   rangedMeleeLifetime: 0.5
