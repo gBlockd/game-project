@@ -50,7 +50,6 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Damage Knockback")]
     public float damageKnockbackMoveDuration = 0.25f;
-    public float damageKnockbackFreezeDuration = 0.25f;
     public float damageKnockbackHorizontalSpeed = 14f;
     public float damageKnockbackUpSpeed = 9f;
     public float damageKnockbackDecay = 4f;
@@ -629,13 +628,6 @@ public class PlayerMovement : MonoBehaviour
         }
 
         rb.linearVelocity = Vector2.zero;
-
-        float freezeDuration = Mathf.Max(0f, damageKnockbackFreezeDuration);
-        if (freezeDuration > 0f)
-        {
-            yield return new WaitForSeconds(freezeDuration);
-        }
-
         rb.gravityScale = normalGravityScale;
         movementDisabled = false;
         RefreshHeldHorizontalInput();
