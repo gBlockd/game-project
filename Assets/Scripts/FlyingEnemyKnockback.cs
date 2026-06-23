@@ -7,6 +7,7 @@ using UnityEngine;
 /// Behavior:
 /// - freezes movement temporarily,
 /// - pushes the enemy a short distance away from the attacker,
+/// - holds the enemy still for a short beat after the shove finishes,
 /// - restores the enemy's previous momentum afterward,
 /// - respects knockback immunity from the movement script.
 /// </summary>
@@ -15,6 +16,7 @@ public class FlyingEnemyKnockback : MonoBehaviour
     [Header("Knockback")]
     public float knockbackDistance = 1f;
     public float knockbackDuration = 0.08f;
+    public float postKnockbackFreezeDuration = 0.15f;
 
     private IFlyingEnemyMovement flyingEnemyMovement;
     private Coroutine knockbackCoroutine;
@@ -55,11 +57,12 @@ public class FlyingEnemyKnockback : MonoBehaviour
 
         flyingEnemyMovement.FreezeMovement();
 
+        float moveDuration = Mathf.Max(0f, knockbackDuration);
         float elapsed = 0f;
 
-        while (elapsed < knockbackDuration)
+        while (elapsed < moveDuration)
         {
-            float t = elapsed / knockbackDuration;
+            float t = moveDuration > 0f ? elapsed / moveDuration : 1f;
             transform.position = Vector2.Lerp(startPosition, targetPosition, t);
 
             elapsed += Time.deltaTime;
@@ -67,6 +70,12 @@ public class FlyingEnemyKnockback : MonoBehaviour
         }
 
         transform.position = targetPosition;
+
+        float freezeDuration = Mathf.Max(0f, postKnockbackFreezeDuration);
+        if (freezeDuration > 0f)
+        {
+            yield return new WaitForSeconds(freezeDuration);
+        }
 
         flyingEnemyMovement.UnfreezeMovement(savedVelocity);
         knockbackCoroutine = null;
