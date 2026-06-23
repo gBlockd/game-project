@@ -13,16 +13,24 @@ using UnityEngine;
 /// </summary>
 public class FlyingEnemyKnockback : MonoBehaviour
 {
+    private const float PreviousPostKnockbackFreezeDuration = 0.15f;
+    private const float DefaultPostKnockbackFreezeDuration = 0.35f;
+
     [Header("Knockback")]
     public float knockbackDistance = 1f;
     public float knockbackDuration = 0.08f;
-    public float postKnockbackFreezeDuration = 0.15f;
+    public float postKnockbackFreezeDuration = DefaultPostKnockbackFreezeDuration;
 
     private IFlyingEnemyMovement flyingEnemyMovement;
     private Coroutine knockbackCoroutine;
 
     private void Awake()
     {
+        if (Mathf.Approximately(postKnockbackFreezeDuration, PreviousPostKnockbackFreezeDuration))
+        {
+            postKnockbackFreezeDuration = DefaultPostKnockbackFreezeDuration;
+        }
+
         flyingEnemyMovement = GetComponent<IFlyingEnemyMovement>();
     }
 
