@@ -220,7 +220,7 @@ public class PauseMenuController : MonoBehaviour
     {
         disabledGameplayInputs.Clear();
 
-        PlayerInput[] playerInputs = FindObjectsOfType<PlayerInput>();
+        PlayerInput[] playerInputs = FindObjectsByType<PlayerInput>(FindObjectsSortMode.None);
         foreach (PlayerInput playerInput in playerInputs)
         {
             if (playerInput == null || !playerInput.enabled)
@@ -246,7 +246,7 @@ public class PauseMenuController : MonoBehaviour
 
     private void ClearGameplayInputBuffers()
     {
-        PlayerMovement[] movementScripts = FindObjectsOfType<PlayerMovement>();
+        PlayerMovement[] movementScripts = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
         foreach (PlayerMovement movement in movementScripts)
         {
             if (movement != null)
@@ -255,7 +255,7 @@ public class PauseMenuController : MonoBehaviour
             }
         }
 
-        PlayerAttack[] attackScripts = FindObjectsOfType<PlayerAttack>();
+        PlayerAttack[] attackScripts = FindObjectsByType<PlayerAttack>(FindObjectsSortMode.None);
         foreach (PlayerAttack attack in attackScripts)
         {
             if (attack != null)
@@ -264,7 +264,7 @@ public class PauseMenuController : MonoBehaviour
             }
         }
 
-        PlayerProjectileAttack[] projectileAttackScripts = FindObjectsOfType<PlayerProjectileAttack>();
+        PlayerProjectileAttack[] projectileAttackScripts = FindObjectsByType<PlayerProjectileAttack>(FindObjectsSortMode.None);
         foreach (PlayerProjectileAttack projectileAttack in projectileAttackScripts)
         {
             if (projectileAttack != null)
