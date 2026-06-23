@@ -123,6 +123,28 @@ public class GameStateManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Deletes a slot from disk. If that slot is loaded right now, the in-memory
+    /// run state is also cleared so old progress cannot leak into a fresh run.
+    /// </summary>
+    public bool DeleteSaveSlot(int slotIndex)
+    {
+        bool deleted = SaveSystem.TryDeleteSlot(slotIndex);
+
+        if (!deleted)
+            return false;
+
+        if (activeSaveSlotIndex == slotIndex)
+        {
+            string fallbackStartSceneName = newGameStartSceneName;
+            activeSaveSlotIndex = -1;
+            shouldApplySavedSpawnOnNextSceneLoad = false;
+            ResetRunState(fallbackStartSceneName);
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Returns the scene that should load for the currently selected save slot.
     /// </summary>
     public string GetSceneNameForCurrentSave(string fallbackStartSceneName)
