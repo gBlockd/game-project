@@ -8,7 +8,7 @@ using System.Collections;
 /// - initializes health from GameStateManager when available,
 /// - applies damage and healing,
 /// - prevents repeated damage during invincibility frames,
-/// - triggers player damage feedback,
+/// - triggers player damage feedback and knockback,
 /// - starts the respawn flow when health reaches zero,
 /// - writes health changes back to GameStateManager.
 /// </summary>
@@ -29,6 +29,7 @@ public class PlayerHealth : MonoBehaviour
     public bool IsDead => isDead;
 
     private PlayerDamageFlash damageFlash;
+    private PlayerMovement playerMovement;
 
     /// <summary>
     /// Loads health from persistent game state when possible; otherwise starts at full health.
@@ -36,6 +37,7 @@ public class PlayerHealth : MonoBehaviour
     private void Awake()
     {
         damageFlash = GetComponent<PlayerDamageFlash>();
+        playerMovement = GetComponent<PlayerMovement>();
 
         if (GameStateManager.Instance != null)
         {
@@ -68,6 +70,11 @@ public class PlayerHealth : MonoBehaviour
         if (damageFlash != null)
         {
             damageFlash.Flash();
+        }
+
+        if (playerMovement != null)
+        {
+            playerMovement.ApplyDamageKnockback();
         }
 
         StartCoroutine(InvincibilityRoutine());
