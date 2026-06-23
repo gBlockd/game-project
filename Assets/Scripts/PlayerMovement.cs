@@ -610,7 +610,37 @@ public class PlayerMovement : MonoBehaviour
         yield return new WaitForSeconds(duration);
 
         movementDisabled = false;
+        RefreshHeldHorizontalInput();
         movementDisableCoroutine = null;
+    }
+
+    private void RefreshHeldHorizontalInput()
+    {
+        if (Keyboard.current == null)
+            return;
+
+        float heldHorizontalInput = 0f;
+
+        if (Keyboard.current.aKey.isPressed)
+        {
+            heldHorizontalInput -= 1f;
+        }
+
+        if (Keyboard.current.dKey.isPressed)
+        {
+            heldHorizontalInput += 1f;
+        }
+
+        horizontalInput = heldHorizontalInput;
+
+        if (horizontalInput > 0.01f)
+        {
+            facingDirection = 1;
+        }
+        else if (horizontalInput < -0.01f)
+        {
+            facingDirection = -1;
+        }
     }
 
     private IEnumerator PerformDash(bool consumeNormalDashCharge)
