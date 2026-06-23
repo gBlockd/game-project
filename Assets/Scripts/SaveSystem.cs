@@ -74,14 +74,39 @@ public static class SaveSystem
         }
     }
 
+    /// <summary>
+    /// Deletes the save file for a slot. Missing files count as success because
+    /// the slot is already clear.
+    /// </summary>
+    public static bool TryDeleteSlot(int slotIndex)
+    {
+        if (slotIndex <= 0)
+        {
+            Debug.LogWarning("Save slot index must be greater than zero.");
+            return false;
+        }
+
+        try
+        {
+            string filePath = GetSaveFilePath(slotIndex);
+
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning("Failed to delete save slot " + slotIndex + ": " + exception.Message);
+            return false;
+        }
+    }
+
     public static void DeleteSlot(int slotIndex)
     {
-        string filePath = GetSaveFilePath(slotIndex);
-
-        if (File.Exists(filePath))
-        {
-            File.Delete(filePath);
-        }
+        TryDeleteSlot(slotIndex);
     }
 
     public static SaveSlotData CreateNewSlot(int slotIndex, string newGameStartSceneName, int maxHealth)
