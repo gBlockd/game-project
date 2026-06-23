@@ -13,16 +13,24 @@ using UnityEngine;
 /// </summary>
 public class CrawlerEnemyKnockback : MonoBehaviour
 {
+    private const float PreviousPostKnockbackFreezeDuration = 0.15f;
+    private const float DefaultPostKnockbackFreezeDuration = 0.35f;
+
     [Header("Knockback")]
     public float knockbackDistance = 0.75f;
     public float knockbackDuration = 0.08f;
-    public float postKnockbackFreezeDuration = 0.15f;
+    public float postKnockbackFreezeDuration = DefaultPostKnockbackFreezeDuration;
 
     private CrawlerEnemy crawlerEnemy;
     private Coroutine knockbackCoroutine;
 
     private void Awake()
     {
+        if (Mathf.Approximately(postKnockbackFreezeDuration, PreviousPostKnockbackFreezeDuration))
+        {
+            postKnockbackFreezeDuration = DefaultPostKnockbackFreezeDuration;
+        }
+
         crawlerEnemy = GetComponent<CrawlerEnemy>();
     }
 
