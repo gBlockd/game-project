@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -47,6 +48,11 @@ public class PlayerMovement : MonoBehaviour
     public int maxDashCharges = 3;
     public float dashCooldown = 0.5f;
 
+    [Header("Damage Knockback")]
+    public float damageKnockbackDuration = 0.5f;
+    public float damageKnockbackHorizontalSpeed = 8f;
+    public float damageKnockbackUpSpeed = 7f;
+
     private Rigidbody2D rb;
     private Camera mainCamera;
     private PlayerEnergy playerEnergy;
@@ -78,6 +84,10 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 dashDirection;
 
     private float normalGravityScale;
+    private int facingDirection = 1;
+    private bool movementDisabled;
+    private Coroutine dashCoroutine;
+    private Coroutine movementDisableCoroutine;
 
     public float CurrentFlightTime => currentFlightTime;
     public float MaxFlightTime => maxFlightTime;
@@ -87,6 +97,8 @@ public class PlayerMovement : MonoBehaviour
 
     public bool HasFlightAbility => hasFlightAbility;
     public bool HasDashAbility => hasDashAbility;
+    public int FacingDirection => facingDirection;
+    public bool IsMovementDisabled => movementDisabled;
 
     private Vector2 lastGroundedPosition;
     public Vector2 LastGroundedPosition => lastGroundedPosition;
@@ -137,13 +149,37 @@ public class PlayerMovement : MonoBehaviour
 
     public void ResetMomentum()
     {
+        if (dashCoroutine != null)
+        {
+            StopCoroutine(dashCoroutine);
+            dashCoroutine = null;
+        }
+
+        if (movementDisableCoroutine != null)
+        {
+            StopCoroutine(movementDisableCoroutine);
+            movementDisableCoroutine = null;
+        }
+
+        movementDisabled = false;
         currentHorizontalSpeed = 0f;
+        horizontalInput = 0f;
         jumpPressed = false;
+        flyHeld = false;
+        diveHeld = false;
         hasStartedJump = false;
         coyoteTimeCounter = 0f;
         dashPressed = false;
         isDashing = false;
+        canDash = true;
         dashDirection = Vector2.zero;
+        isInFlightMode = false;
+        wasGliding = false;
+
+        if (rb != null)
+        {
+            rb.gravityScale = normalGravityScale;
+        }
     }
 
     public void ClearInputState()
@@ -158,10 +194,22 @@ public class PlayerMovement : MonoBehaviour
     public void OnMoveHorizontal(InputAction.CallbackContext context)
     {
         horizontalInput = context.ReadValue<float>();
+
+        if (horizontalInput > 0.01f)
+        {
+            facingDirection = 1;
+        }
+        else if (horizontalInput < -0.01f)
+        {
+            facingDirection = -1;
+        }
     }
 
     public void OnJump(InputAction.CallbackContext context)
     {
+        if (movementDisabled)
+            return;
+
         if (context.performed)
         {
             jumpPressed = true;
@@ -180,23 +228,60 @@ public class PlayerMovement : MonoBehaviour
 
     public void OnFly(InputAction.CallbackContext context)
     {
-        flyHeld = hasFlightAbility && context.ReadValueAsButton();
+        flyHeld = !movementDisabled && hasFlightAbility && context.ReadValueAsButton();
     }
 
     public void OnDive(InputAction.CallbackContext context)
     {
-        diveHeld = context.ReadValueAsButton();
+        diveHeld = !movementDisabled && context.ReadValueAsButton();
     }
 
     public void OnDash(InputAction.CallbackContext context)
     {
-        if (!hasDashAbility)
+        if (!hasDashAbility || movementDisabled)
             return;
 
         if (context.performed)
         {
             dashPressed = true;
         }
+    }
+
+    /// <summary>
+    /// Cancels current movement control and pushes the player opposite their facing direction.
+    /// </summary>
+    public void ApplyDamageKnockback()
+    {
+        if (rb == null)
+            return;
+
+        if (dashCoroutine != null)
+        {
+            StopCoroutine(dashCoroutine);
+            dashCoroutine = null;
+        }
+
+        if (movementDisableCoroutine != null)
+        {
+            StopCoroutine(movementDisableCoroutine);
+            movementDisableCoroutine = null;
+        }
+
+        ClearInputState();
+        currentHorizontalSpeed = 0f;
+        hasStartedJump = false;
+        coyoteTimeCounter = 0f;
+        isDashing = false;
+        canDash = true;
+        dashDirection = Vector2.zero;
+        isInFlightMode = false;
+        wasGliding = false;
+        rb.gravityScale = normalGravityScale;
+
+        float knockbackX = -facingDirection * damageKnockbackHorizontalSpeed;
+        rb.linearVelocity = new Vector2(knockbackX, damageKnockbackUpSpeed);
+
+        movementDisableCoroutine = StartCoroutine(DisableMovementRoutine(damageKnockbackDuration));
     }
 
     private void Update()
@@ -229,17 +314,24 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        if (movementDisabled)
+        {
+            jumpPressed = false;
+            dashPressed = false;
+            return;
+        }
+
         if (hasDashAbility && dashPressed && canDash && !isDashing)
         {
             if (currentDashCharges > 0)
             {
                 dashPressed = false;
-                StartCoroutine(PerformDash(true));
+                dashCoroutine = StartCoroutine(PerformDash(true));
             }
             else if (playerEnergy != null && playerEnergy.TryConsumeCharge())
             {
                 dashPressed = false;
-                StartCoroutine(PerformDash(false));
+                dashCoroutine = StartCoroutine(PerformDash(false));
             }
             else
             {
@@ -308,7 +400,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (isDashing)
+        if (movementDisabled || isDashing)
             return;
 
         HandleHorizontalMovement();
@@ -511,15 +603,31 @@ public class PlayerMovement : MonoBehaviour
         Gizmos.DrawWireCube(rightWallBoxCenter, leftWallBoxSize);
     }
 
-    private System.Collections.IEnumerator PerformDash(bool consumeNormalDashCharge)
+    private IEnumerator DisableMovementRoutine(float duration)
+    {
+        movementDisabled = true;
+
+        yield return new WaitForSeconds(duration);
+
+        movementDisabled = false;
+        movementDisableCoroutine = null;
+    }
+
+    private IEnumerator PerformDash(bool consumeNormalDashCharge)
     {
         if (!hasDashAbility || mainCamera == null || !canDash)
+        {
+            dashCoroutine = null;
             yield break;
+        }
 
         if (consumeNormalDashCharge)
         {
             if (currentDashCharges <= 0)
+            {
+                dashCoroutine = null;
                 yield break;
+            }
 
             currentDashCharges--;
         }
@@ -555,5 +663,6 @@ public class PlayerMovement : MonoBehaviour
         yield return new WaitForSeconds(dashCooldown);
 
         canDash = true;
+        dashCoroutine = null;
     }
 }
