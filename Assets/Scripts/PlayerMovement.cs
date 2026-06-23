@@ -49,9 +49,11 @@ public class PlayerMovement : MonoBehaviour
     public float dashCooldown = 0.5f;
 
     [Header("Damage Knockback")]
-    public float damageKnockbackDuration = 0.5f;
-    public float damageKnockbackHorizontalSpeed = 8f;
-    public float damageKnockbackUpSpeed = 7f;
+    public float damageKnockbackMoveDuration = 0.25f;
+    public float damageKnockbackFreezeDuration = 0.25f;
+    public float damageKnockbackHorizontalSpeed = 14f;
+    public float damageKnockbackUpSpeed = 9f;
+    public float damageKnockbackDecay = 4f;
 
     private Rigidbody2D rb;
     private Camera mainCamera;
@@ -179,6 +181,7 @@ public class PlayerMovement : MonoBehaviour
         if (rb != null)
         {
             rb.gravityScale = normalGravityScale;
+            rb.linearVelocity = Vector2.zero;
         }
     }
 
@@ -277,11 +280,14 @@ public class PlayerMovement : MonoBehaviour
         isInFlightMode = false;
         wasGliding = false;
         rb.gravityScale = normalGravityScale;
+        rb.linearVelocity = Vector2.zero;
 
-        float knockbackX = -facingDirection * damageKnockbackHorizontalSpeed;
-        rb.linearVelocity = new Vector2(knockbackX, damageKnockbackUpSpeed);
+        Vector2 knockbackVelocity = new Vector2(
+            -facingDirection * damageKnockbackHorizontalSpeed,
+            damageKnockbackUpSpeed
+        );
 
-        movementDisableCoroutine = StartCoroutine(DisableMovementRoutine(damageKnockbackDuration));
+        movementDisableCoroutine = StartCoroutine(DamageKnockbackRoutine(knockbackVelocity));
     }
 
     private void Update()
@@ -603,12 +609,34 @@ public class PlayerMovement : MonoBehaviour
         Gizmos.DrawWireCube(rightWallBoxCenter, leftWallBoxSize);
     }
 
-    private IEnumerator DisableMovementRoutine(float duration)
+    private IEnumerator DamageKnockbackRoutine(Vector2 initialVelocity)
     {
         movementDisabled = true;
+        rb.gravityScale = 0f;
 
-        yield return new WaitForSeconds(duration);
+        float moveDuration = Mathf.Max(0f, damageKnockbackMoveDuration);
+        float decay = Mathf.Max(0f, damageKnockbackDecay);
+        float elapsed = 0f;
 
+        while (elapsed < moveDuration)
+        {
+            float progress = moveDuration > 0f ? Mathf.Clamp01(elapsed / moveDuration) : 1f;
+            float speedMultiplier = Mathf.Exp(-decay * progress);
+            rb.linearVelocity = initialVelocity * speedMultiplier;
+
+            elapsed += Time.fixedDeltaTime;
+            yield return new WaitForFixedUpdate();
+        }
+
+        rb.linearVelocity = Vector2.zero;
+
+        float freezeDuration = Mathf.Max(0f, damageKnockbackFreezeDuration);
+        if (freezeDuration > 0f)
+        {
+            yield return new WaitForSeconds(freezeDuration);
+        }
+
+        rb.gravityScale = normalGravityScale;
         movementDisabled = false;
         RefreshHeldHorizontalInput();
         movementDisableCoroutine = null;
